@@ -97,7 +97,7 @@ def _run_doctor(
     probe_durations["GPU inventory"] = round((time.perf_counter() - started) * 1000, 2)
 
     started = time.perf_counter()
-    cuda_info = collect_cuda_info()
+    cuda_info = collect_cuda_info(nvidia_smi_available=smi_available)
     probe_durations["CUDA discovery"] = round((time.perf_counter() - started) * 1000, 2)
 
     started = time.perf_counter()

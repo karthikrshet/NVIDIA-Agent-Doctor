@@ -18,7 +18,7 @@ _MIN_DRIVER_MAJOR_BY_CUDA_MAJOR = {"11": 450, "12": 525, "13": 580}
 _CUDA_COMPATIBILITY_URL = "https://docs.nvidia.com/deploy/cuda-compatibility/"
 
 
-def collect_cuda_info() -> CUDAInfo:
+def collect_cuda_info(nvidia_smi_available: bool | None = None) -> CUDAInfo:
     """Collect CUDA installation details from environment and filesystem. Never raises."""
     cuda_home = os.environ.get("CUDA_HOME")
     cuda_path = os.environ.get("CUDA_PATH")
@@ -29,8 +29,9 @@ def collect_cuda_info() -> CUDAInfo:
     nvcc_available = nvcc_path is not None
     toolkit_version = _detect_toolkit_version(nvcc_path, cuda_home, cuda_path)
 
-    runtime_version = _detect_runtime_version()
-    driver_version = _detect_driver_cuda_version()
+    smi_available = shutil.which("nvidia-smi") is not None if nvidia_smi_available is None else nvidia_smi_available
+    runtime_version = _detect_runtime_version(smi_available)
+    driver_version = _detect_driver_cuda_version(smi_available)
 
     libraries = _find_cuda_libraries(cuda_home, cuda_path, ld_lib)
 
@@ -107,9 +108,11 @@ def _parse_nvcc_version(output: str) -> str | None:
     return None
 
 
-def _detect_runtime_version() -> str | None:
+def _detect_runtime_version(nvidia_smi_available: bool = True) -> str | None:
     """Detect CUDA runtime version via libcudart or torch."""
     # Try via PyTorch if available
+    if not nvidia_smi_available:
+        return None
     try:
         import torch
 
@@ -133,8 +136,10 @@ def _detect_runtime_version() -> str | None:
     return None
 
 
-def _detect_driver_cuda_version() -> str | None:
+def _detect_driver_cuda_version(nvidia_smi_available: bool = True) -> str | None:
     """Detect the max CUDA version supported by the installed driver."""
+    if not nvidia_smi_available:
+        return None
     try:
         result = subprocess.run(
             ["nvidia-smi", "--query-gpu=driver_version", "--format=csv,noheader"],

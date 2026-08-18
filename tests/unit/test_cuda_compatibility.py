@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from nvidia_agent_doctor.collectors.cuda import _check_compatibility
+from unittest.mock import patch
+
+from nvidia_agent_doctor.collectors.cuda import _check_compatibility, collect_cuda_info
 
 
 def test_cuda_12_requires_documented_minimum_driver() -> None:
@@ -25,3 +27,11 @@ def test_cuda_11_with_supported_driver_is_not_flagged() -> None:
 
     assert compatible is True
     assert notes == []
+
+
+def test_cuda_collector_does_not_launch_nvidia_smi_when_preflight_failed() -> None:
+    with patch("nvidia_agent_doctor.collectors.cuda.shutil.which", return_value=None):
+        with patch("nvidia_agent_doctor.collectors.cuda.subprocess.run") as run:
+            collect_cuda_info(nvidia_smi_available=False)
+
+    run.assert_not_called()
