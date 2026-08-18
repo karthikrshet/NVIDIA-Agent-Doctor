@@ -27,7 +27,7 @@ def scan(
     ),
     json_output: bool = typer.Option(False, "--json"),
     verbose: bool = typer.Option(False, "--verbose"),
-    depth: int = typer.Option(3, "--depth", help="Maximum scan depth."),
+    depth: int | None = typer.Option(None, "--depth", help="Maximum scan depth."),
     risk_graph: bool = typer.Option(False, "--risk-graph", help="Show cross-skill risk graph."),
 ) -> None:
     """
@@ -36,11 +36,13 @@ def scan(
     This is HEURISTIC STATIC ANALYSIS only. Results require human review.
     False positives and false negatives are possible.
     """
+    from nvidia_agent_doctor.cli.main import get_config
     from nvidia_agent_doctor.security.credentials import redact_data
     from nvidia_agent_doctor.skills.registry import SkillRiskGraph
     from nvidia_agent_doctor.skills.scanner import scan_skills_directory
 
     console = Console()
+    depth = depth if depth is not None else get_config().skills.scan_depth
 
     if not directory.exists():
         console.print(f"[red]Directory not found: {directory}[/red]")

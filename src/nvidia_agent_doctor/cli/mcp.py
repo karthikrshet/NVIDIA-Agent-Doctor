@@ -23,12 +23,14 @@ def scan(
     config_path: list[str] = typer.Option([], "--config", help="Additional MCP config paths."),
 ) -> None:
     """Discover and analyze MCP server configurations."""
+    from nvidia_agent_doctor.cli.main import get_config
     from nvidia_agent_doctor.integrations.mcp import discover_mcp_servers
     from nvidia_agent_doctor.security.credentials import redact_data
     from nvidia_agent_doctor.security.mcp import analyze_mcp_server
 
     console = Console()
-    servers = discover_mcp_servers(extra_paths=config_path if config_path else None)
+    configured_paths = get_config().mcp.config_paths
+    servers = discover_mcp_servers(extra_paths=[*configured_paths, *config_path])
 
     if json_output:
         import json

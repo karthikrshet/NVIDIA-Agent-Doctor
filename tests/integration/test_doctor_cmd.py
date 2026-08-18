@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -112,3 +113,13 @@ class TestMachineReadableSubcommands:
         assert result.exit_code == 0
         payload = json.loads(result.output)
         assert isinstance(payload, list)
+
+
+def test_invalid_config_returns_exit_code_four(tmp_path: Path) -> None:
+    config = tmp_path / "invalid.toml"
+    config.write_text("[doctor\nstrict = true")
+
+    result = runner.invoke(app, ["--json", "--config", str(config), "doctor"])
+
+    assert result.exit_code == 4
+    assert json.loads(result.output)["exit_code"] == 4

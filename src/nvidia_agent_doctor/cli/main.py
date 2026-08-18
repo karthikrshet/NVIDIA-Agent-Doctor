@@ -8,6 +8,7 @@ import typer
 from rich.console import Console
 
 from nvidia_agent_doctor import __version__
+from nvidia_agent_doctor.core.config import ConfigError, NADConfig, load_config
 
 app = typer.Typer(
     name="nad",
@@ -26,6 +27,7 @@ _console = Console()
 _json_mode = False
 _verbose = False
 _quiet = False
+_config = NADConfig()
 
 
 def get_console() -> Console:
@@ -44,6 +46,11 @@ def is_quiet() -> bool:
     return _quiet
 
 
+def get_config() -> NADConfig:
+    """Return the validated configuration for the current CLI invocation."""
+    return _config
+
+
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
@@ -55,7 +62,7 @@ def main(
     config: Path | None = typer.Option(None, "--config", help="Path to config file."),
 ) -> None:
     """NVIDIA Agent Doctor CLI."""
-    global _json_mode, _verbose, _quiet, _console
+    global _json_mode, _verbose, _quiet, _console, _config
 
     if no_color:
         import os
@@ -66,6 +73,16 @@ def main(
     _json_mode = json_output
     _verbose = verbose
     _quiet = quiet
+    try:
+        _config = load_config(config)
+    except ConfigError as exc:
+        if json_output:
+            import json
+
+            typer.echo(json.dumps({"error": str(exc), "exit_code": 4}))
+        else:
+            typer.echo(f"Configuration error: {exc}", err=True)
+        raise typer.Exit(code=4) from exc
 
     if version:
         if json_output:
