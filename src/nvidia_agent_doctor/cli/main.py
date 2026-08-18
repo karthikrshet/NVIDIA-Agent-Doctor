@@ -112,6 +112,8 @@ from nvidia_agent_doctor.cli import openshell as _osh_mod  # noqa: E402
 from nvidia_agent_doctor.cli import report as _report_mod  # noqa: E402
 from nvidia_agent_doctor.cli import security as _sec_mod  # noqa: E402
 from nvidia_agent_doctor.cli import skills as _skills_mod  # noqa: E402
+from nvidia_agent_doctor.cli import tensorrt as _tensorrt_mod  # noqa: E402
+from nvidia_agent_doctor.cli import triton as _triton_mod  # noqa: E402
 
 app.add_typer(_doctor_mod.app, name="doctor")
 app.add_typer(_gpu_mod.app, name="gpu")
@@ -122,6 +124,8 @@ app.add_typer(_skills_mod.app, name="skills")
 app.add_typer(_compat_mod.app, name="compatibility")
 app.add_typer(_bench_mod.app, name="benchmark")
 app.add_typer(_report_mod.app, name="report")
+app.add_typer(_tensorrt_mod.app, name="tensorrt")
+app.add_typer(_triton_mod.app, name="triton")
 app.add_typer(_osh_mod.app, name="openshell")
 app.add_typer(_nem_mod.app, name="nemotron")
 app.add_typer(_claw_mod.app, name="nemoclaw")

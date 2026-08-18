@@ -171,8 +171,23 @@ def analyze_compatibility(
                 CheckResult(
                     name="cuda_tensorrt",
                     severity=Severity.WARNING,
-                    message="TensorRT ↔ CUDA: compatibility unknown",
+                    message="TensorRT ↔ CUDA: incompatibility detected",
                     recommendation="Verify TensorRT and CUDA version compatibility.",
+                )
+            )
+        else:
+            section.checks.append(
+                CheckResult(
+                    name="cuda_tensorrt",
+                    severity=Severity.UNKNOWN,
+                    message="TensorRT detected; CUDA compatibility has not been verified",
+                    detail=(
+                        "TensorRT import and local runtime probes do not establish a supported "
+                        "TensorRT/CUDA/driver combination."
+                    ),
+                    recommendation=(
+                        "Verify this combination against the NVIDIA TensorRT Support Matrix."
+                    ),
                 )
             )
     else:

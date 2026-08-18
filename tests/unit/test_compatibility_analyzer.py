@@ -35,3 +35,21 @@ def test_prebuilt_pytorch_runtime_does_not_require_a_local_cuda_toolkit() -> Non
     assert toolkit_runtime.severity is Severity.NOT_APPLICABLE
     assert pytorch.severity is Severity.PASS
     assert "basic GPU computation" in pytorch.message
+
+
+def test_tensorrt_import_does_not_claim_cuda_support_matrix_compatibility() -> None:
+    section = analyze_compatibility(
+        gpu_info=[GPUInfo(index=0, name="RTX test", driver_version="511.65")],
+        cuda_info=CUDAInfo(runtime_version="11.8", driver_version="511.65", compatible=True),
+        pytorch_info={
+            "installed": True,
+            "cuda_version": "11.8",
+            "basic_compute_pass": True,
+        },
+        tensorrt_info={"installed": True, "cuda_compatible": None},
+    )
+
+    tensorrt = next(check for check in section.checks if check.name == "cuda_tensorrt")
+
+    assert tensorrt.severity is Severity.UNKNOWN
+    assert "has not been verified" in tensorrt.message

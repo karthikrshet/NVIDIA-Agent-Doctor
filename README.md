@@ -90,6 +90,10 @@ nad gpu info --json
 nad gpu health --json
 nad cuda check --json
 nad compatibility check --json
+
+# Optional local runtime probes; absence is reported as optional
+nad tensorrt check --json
+nad triton check --json
 ```
 
 To inspect where time is spent on your machine, use `nad doctor --json --profile`. PyTorch import and CUDA initialization can dominate a first run when CUDA-enabled PyTorch is installed.
@@ -189,6 +193,8 @@ The cluster command does not edit workloads, policies, or contexts. Confirm that
 | `nad gpu info` / `nad gpu health` | NVIDIA GPU inventory and health | Read-only `nvidia-smi` calls |
 | `nad cuda check` | CUDA toolkit/runtime/environment evidence | Read-only |
 | `nad compatibility check` | GPU, driver, CUDA, PyTorch, TensorRT evidence | Read-only; does not invent a support matrix |
+| `nad tensorrt check` | TensorRT Python binding, runtime, and builder-object probe | Does not build an engine or claim CUDA support-matrix compatibility |
+| `nad triton check` | Local Triton binary, client, process, and container indicators | Does not contact an endpoint, load a model, or run inference |
 | `nad security scan` | Environment and local permission baseline | Does not print detected secret values |
 | `nad security leak-check` | Redaction regression probes | Uses deterministic test values, not your credentials |
 | `nad mcp scan` | MCP configuration discovery and static review | Does not execute MCP server commands |
