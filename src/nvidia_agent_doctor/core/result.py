@@ -151,10 +151,13 @@ class DiagnosticReport(BaseModel):
         """
         if self.total_errors > 0:
             return 2
+        all_security_findings = list(self.security_findings)
+        for section in self.sections.values():
+            all_security_findings.extend(section.security_findings)
         high_security = [
-            f
-            for f in self.security_findings
-            if f.severity in (SecuritySeverity.HIGH, SecuritySeverity.CRITICAL)
+            finding
+            for finding in all_security_findings
+            if finding.severity in (SecuritySeverity.HIGH, SecuritySeverity.CRITICAL)
         ]
         if high_security:
             return 3

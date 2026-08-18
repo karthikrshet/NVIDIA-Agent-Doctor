@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
-from nvidia_agent_doctor.core.result import CheckResult, DiagnosticReport, SectionResult
-from nvidia_agent_doctor.core.severity import Severity
+from nvidia_agent_doctor.core.result import (
+    CheckResult,
+    DiagnosticReport,
+    SectionResult,
+    SecurityFinding,
+)
+from nvidia_agent_doctor.core.severity import SecuritySeverity, Severity
 
 
 def make_section(name: str, severities: list[Severity]) -> SectionResult:
@@ -77,6 +82,22 @@ class TestDiagnosticReport:
         report = DiagnosticReport()
         report.add_section(make_section("gpu", [Severity.ERROR]))
         assert report.exit_code == 2
+
+    def test_exit_code_high_section_security_finding(self) -> None:
+        report = DiagnosticReport()
+        section = make_section("security", [Severity.PASS])
+        section.security_findings.append(
+            SecurityFinding(
+                title="Unsafe MCP server",
+                severity=SecuritySeverity.HIGH,
+                description="Potential security risk requiring review.",
+                recommendation="Review the server configuration.",
+                component="mcp",
+            )
+        )
+        report.add_section(section)
+
+        assert report.exit_code == 3
 
     def test_total_warnings(self) -> None:
         report = DiagnosticReport()
