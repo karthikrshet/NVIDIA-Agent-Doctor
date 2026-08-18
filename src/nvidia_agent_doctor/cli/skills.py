@@ -116,3 +116,26 @@ def scan(
         "A finding does not confirm malicious behavior. "
         "All results require human review.[/dim]"
     )
+
+
+@app.command("verify")
+def verify(
+    skill: Path = typer.Argument(..., help="Path to the SKILL.md file."),
+    signature: Path | None = typer.Option(None, "--signature", help="Detached SHA-256 digest file."),
+    json_output: bool = typer.Option(False, "--json"),
+) -> None:
+    """Verify a local detached digest and validate a SKILLCARD.yaml manifest."""
+    import json
+
+    from nvidia_agent_doctor.skills.verifier import verify_skill
+
+    result = verify_skill(skill, signature)
+    if json_output:
+        typer.echo(json.dumps(result, indent=2))
+    else:
+        console = Console()
+        console.print(f"Integrity: {result['integrity']['status']}")
+        console.print(f"Skill card: {result['skillcard']['status']}")
+        console.print("Verified" if result["verified"] else "Not verified")
+    if not result["verified"]:
+        raise typer.Exit(code=3)
