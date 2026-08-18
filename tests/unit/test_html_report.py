@@ -31,3 +31,27 @@ def test_report_escapes_untrusted_diagnostic_values() -> None:
 
     assert payload not in output
     assert "&lt;img src=x onerror=alert(&quot;xss&quot;)&gt;" in output
+
+
+def test_report_redacts_secrets_before_rendering() -> None:
+    secret = "sk-realsecret12345678901234567890"
+    report = DiagnosticReport()
+    report.add_section(
+        SectionResult(
+            name="gpu",
+            display_name="GPU",
+            checks=[
+                CheckResult(
+                    name="runtime",
+                    severity=Severity.WARNING,
+                    message=f"OPENAI_API_KEY={secret}",
+                    metadata={"token": secret},
+                )
+            ],
+        )
+    )
+
+    output = render_html(report)
+
+    assert secret not in output
+    assert "OPENAI_API_KEY=********" in output

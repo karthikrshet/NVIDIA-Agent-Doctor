@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import datetime
-from typing import Any
+from typing import Any, cast
 
 from pydantic import BaseModel, Field
 
@@ -167,4 +167,10 @@ class DiagnosticReport(BaseModel):
 
     def to_json_dict(self) -> dict[str, Any]:
         """Return a JSON-serializable dict with secrets redacted."""
-        return self.model_dump(mode="json")
+        from nvidia_agent_doctor.security.credentials import redact_data
+
+        return cast(dict[str, Any], redact_data(self.model_dump(mode="json")))
+
+    def redacted_copy(self) -> DiagnosticReport:
+        """Return a safe copy suitable for any output format."""
+        return self.model_validate(self.to_json_dict())

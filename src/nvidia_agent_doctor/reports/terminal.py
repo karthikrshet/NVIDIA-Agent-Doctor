@@ -13,6 +13,7 @@ from nvidia_agent_doctor.core.result import CheckResult, DiagnosticReport, Secti
 
 def render_report(report: DiagnosticReport, console: Console | None = None) -> None:
     """Render a full diagnostic report to the terminal."""
+    report = report.redacted_copy()
     if console is None:
         console = Console()
 
@@ -28,6 +29,7 @@ def render_report(report: DiagnosticReport, console: Console | None = None) -> N
 
 def render_doctor_summary(report: DiagnosticReport, console: Console | None = None) -> None:
     """Render the compact doctor-style summary panel."""
+    report = report.redacted_copy()
     if console is None:
         console = Console()
 

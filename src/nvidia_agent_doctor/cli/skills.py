@@ -36,6 +36,7 @@ def scan(
     This is HEURISTIC STATIC ANALYSIS only. Results require human review.
     False positives and false negatives are possible.
     """
+    from nvidia_agent_doctor.security.credentials import redact_data
     from nvidia_agent_doctor.skills.registry import SkillRiskGraph
     from nvidia_agent_doctor.skills.scanner import scan_skills_directory
 
@@ -56,7 +57,7 @@ def scan(
         for r in results:
             output.append(
                 {
-                    "skill": r.skill.model_dump(),
+                    "skill": redact_data(r.skill.model_dump()),
                     "risk_level": r.risk_level.value,
                     "findings": [{**f, "severity": f["severity"].value} for f in r.findings],
                 }

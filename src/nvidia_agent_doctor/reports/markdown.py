@@ -7,6 +7,7 @@ from nvidia_agent_doctor.core.result import DiagnosticReport, SectionResult
 
 def render_markdown(report: DiagnosticReport) -> str:
     """Generate a Markdown report from a DiagnosticReport."""
+    report = report.redacted_copy()
     lines: list[str] = []
 
     lines.append("# NVIDIA Agent Doctor — Diagnostic Report")

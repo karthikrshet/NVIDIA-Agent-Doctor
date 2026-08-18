@@ -10,6 +10,7 @@ import typer
 from rich.console import Console
 
 from nvidia_agent_doctor.core.result import CheckResult, DiagnosticReport, SectionResult
+from nvidia_agent_doctor.security.credentials import redact_text
 
 app = typer.Typer(help="Run a full environment diagnostic.", invoke_without_command=True)
 
@@ -98,7 +99,7 @@ def _run_doctor(
                     name="check_error",
                     severity=Severity.UNKNOWN,
                     message=f"{display} check encountered an unexpected error",
-                    detail=str(e) if verbose else None,
+                    detail=redact_text(str(e)) if verbose else None,
                 )
             )
         report.add_section(section)
@@ -149,7 +150,7 @@ def _add_optional_section(
                 name="check_error",
                 severity=Severity.UNKNOWN,
                 message=f"{display} check failed",
-                detail=str(e),
+                detail=redact_text(str(e)),
             )
         )
     report.add_section(section)

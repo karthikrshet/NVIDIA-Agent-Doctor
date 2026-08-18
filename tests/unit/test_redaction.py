@@ -6,6 +6,7 @@ import pytest
 
 from nvidia_agent_doctor.security.credentials import (
     REDACTED,
+    redact_data,
     redact_env_dict,
     redact_secrets,
     scan_environment_for_exposed_secrets,
@@ -54,6 +55,25 @@ class TestRedactEnvDict:
 
     def test_empty_dict(self) -> None:
         assert redact_env_dict({}) == {}
+
+
+class TestRecursiveRedaction:
+    def test_redacts_metadata_arguments_urls_and_exception_text(self) -> None:
+        secret = "sk-realsecret12345678901234567890"
+        data = {
+            "metadata": {"api_key": secret},
+            "args": [f"--token={secret}"],
+            "url": f"https://user:{secret}@example.test/api?access_token={secret}",
+            "error": f"request failed: OPENAI_API_KEY={secret}",
+        }
+
+        result = redact_data(data)
+
+        assert secret not in str(result)
+        assert result["metadata"]["api_key"] == REDACTED
+        assert result["args"][0] == "--token=********"
+        assert result["url"] == "https://********@example.test/api?access_token=********"
+        assert result["error"] == "request failed: OPENAI_API_KEY=********"
 
 
 class TestScanEnvironmentForSecrets:

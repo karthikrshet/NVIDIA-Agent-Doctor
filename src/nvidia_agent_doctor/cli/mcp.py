@@ -24,6 +24,7 @@ def scan(
 ) -> None:
     """Discover and analyze MCP server configurations."""
     from nvidia_agent_doctor.integrations.mcp import discover_mcp_servers
+    from nvidia_agent_doctor.security.credentials import redact_data
     from nvidia_agent_doctor.security.mcp import analyze_mcp_server
 
     console = Console()
@@ -37,7 +38,7 @@ def scan(
             findings = analyze_mcp_server(server)
             result.append(
                 {
-                    "server": server.model_dump(),
+                    "server": redact_data(server.model_dump()),
                     "findings": [{**f, "severity": f["severity"].value} for f in findings],
                 }
             )

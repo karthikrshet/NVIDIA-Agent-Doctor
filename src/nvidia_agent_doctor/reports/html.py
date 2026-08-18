@@ -35,6 +35,7 @@ _SEC_COLORS = {
 
 def render_html(report: DiagnosticReport) -> str:
     """Generate a self-contained HTML report."""
+    report = report.redacted_copy()
 
     def esc(value: object) -> str:
         return escape(str(value), quote=True)

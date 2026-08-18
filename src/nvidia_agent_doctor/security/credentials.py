@@ -6,6 +6,7 @@ import os
 import re
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qsl, urlsplit, urlunsplit
 
 # Patterns that suggest a value is a secret
 _SECRET_KEY_PATTERNS = re.compile(
@@ -26,6 +27,62 @@ _SECRET_VALUE_PATTERNS = [
 ]
 
 REDACTED = "********"
+
+
+def redact_text(value: str) -> str:
+    """Redact known secret values and key/value assignments in arbitrary text."""
+    redacted = value
+    for pattern in _SECRET_VALUE_PATTERNS:
+        redacted = pattern.sub(REDACTED, redacted)
+    return re.sub(
+        r"(?i)\b([A-Z][A-Z0-9_-]*(?:API[_-]?KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|AUTH)[A-Z0-9_-]*)"
+        r"\s*([=:])\s*([^\s,;]+)",
+        lambda match: f"{match.group(1)}{match.group(2)}{REDACTED}",
+        redacted,
+    )
+
+
+def _redact_url(value: str) -> str:
+    """Redact credentials and sensitive query parameters from an HTTP(S) URL."""
+    parsed = urlsplit(value)
+    if parsed.scheme not in {"http", "https"}:
+        return redact_text(value)
+    hostname = parsed.hostname or ""
+    netloc = hostname if parsed.port is None else f"{hostname}:{parsed.port}"
+    if parsed.username or parsed.password:
+        netloc = f"{REDACTED}@{netloc}"
+    query = "&".join(
+        f"{item_key}={REDACTED if _SECRET_KEY_PATTERNS.search(item_key) else redact_text(item)}"
+        for item_key, item in parse_qsl(parsed.query, keep_blank_values=True)
+    )
+    return urlunsplit((parsed.scheme, netloc, parsed.path, query, parsed.fragment))
+
+
+def redact_data(value: Any, key: str | None = None) -> Any:
+    """Recursively sanitize untrusted data without changing its structure."""
+    if isinstance(value, dict):
+        return {
+            str(item_key): redact_data(item_value, str(item_key))
+            for item_key, item_value in value.items()
+        }
+    if isinstance(value, list):
+        return [redact_data(item, key) for item in value]
+    if isinstance(value, tuple):
+        return tuple(redact_data(item, key) for item in value)
+    if isinstance(value, str):
+        if key and _SECRET_KEY_PATTERNS.search(key):
+            return REDACTED
+        if value.startswith(("http://", "https://")):
+            return _redact_url(value)
+        redacted = redact_text(value)
+        redacted = re.sub(
+            r"(?i)(--?(?:api[_-]?key|token|secret|password|passwd|credential|auth)[a-z0-9_-]*)"
+            r"([=:])[^\s,;]+",
+            rf"\1\2{REDACTED}",
+            redacted,
+        )
+        return REDACTED if redact_secrets(key or "", redacted) == REDACTED else redacted
+    return value
 
 
 def redact_secrets(key: str, value: str) -> str:
