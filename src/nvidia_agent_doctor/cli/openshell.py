@@ -83,3 +83,47 @@ def diagnose(
         console.print(f"\n[dim]Config: {info.get('config_path') or 'not found'}[/dim]")
         console.print(f"[dim]Version: {info.get('version') or 'unknown'}[/dim]")
         console.print(f"\n[dim]{info.get('note', '')}[/dim]")
+
+
+@app.command("audit")
+def audit(json_output: bool = typer.Option(False, "--json")) -> None:
+    """Audit heuristic OpenShell isolation indicators without changing policy."""
+    import json
+
+    from nvidia_agent_doctor.integrations.openshell import detect_openshell
+    from nvidia_agent_doctor.security.credentials import redact_data
+
+    info = detect_openshell()
+    findings: list[dict[str, str]] = []
+    if info["installed"]:
+        for key, title in (
+            ("sandbox_active", "Sandbox is not reported as active"),
+            ("policy_configured", "Policy configuration was not detected"),
+        ):
+            if info.get(key) is False:
+                findings.append(
+                    {
+                        "severity": "HIGH",
+                        "title": title,
+                        "recommendation": "Review the runtime configuration and enforce least privilege.",
+                    }
+                )
+    result = redact_data(
+        {
+            "detection_method": "heuristic",
+            "not_a_runtime_security_guarantee": True,
+            "installed": info["installed"],
+            "findings": findings,
+        }
+    )
+    if json_output:
+        typer.echo(json.dumps(result, indent=2))
+    else:
+        console = Console()
+        console.print("OpenShell audit uses local heuristic indicators only.")
+        for finding in findings:
+            console.print(f"HIGH: {finding['title']}")
+        if not findings:
+            console.print("No auditable isolation misconfiguration was detected.")
+    if findings:
+        raise typer.Exit(code=3)
