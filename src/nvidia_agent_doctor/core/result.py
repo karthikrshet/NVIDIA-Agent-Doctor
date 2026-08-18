@@ -110,6 +110,7 @@ class DiagnosticReport(BaseModel):
     security_findings: list[SecurityFinding] = Field(default_factory=list)
     recommendations: list[str] = Field(default_factory=list)
     remediation_plan: list[dict[str, Any]] = Field(default_factory=list)
+    ai_explanation: str | None = None
 
     @property
     def overall_score(self) -> int:

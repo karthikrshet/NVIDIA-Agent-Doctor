@@ -32,6 +32,22 @@ def doctor(
         "--auto-resolve",
         help="Generate a review-only remediation plan; never runs changes automatically.",
     ),
+    ai_explain: bool = typer.Option(
+        False,
+        "--ai-explain",
+        help="Request an explanation from an explicitly permitted local Ollama model.",
+    ),
+    allow_model_request: bool = typer.Option(
+        False,
+        "--allow-model-request",
+        help="Allow the local loopback Ollama request required by --ai-explain.",
+    ),
+    model: str = typer.Option("", "--model", help="Local Ollama model name for --ai-explain."),
+    ollama_endpoint: str = typer.Option(
+        "http://127.0.0.1:11434/api/generate",
+        "--ollama-endpoint",
+        help="Loopback Ollama generate endpoint.",
+    ),
 ) -> None:
     """
     Run a complete, safe read-only environment diagnostic.
@@ -49,6 +65,20 @@ def doctor(
         from nvidia_agent_doctor.core.remediation import build_remediation_plan
 
         report.remediation_plan = build_remediation_plan(report)
+    if ai_explain:
+        from nvidia_agent_doctor.integrations.local_model import explain_with_ollama
+
+        explanation = explain_with_ollama(
+            report,
+            model=model,
+            endpoint=ollama_endpoint,
+            allow_request=allow_model_request,
+        )
+        report.ai_explanation = explanation.get("explanation")
+        if explanation["status"] != "ok":
+            report.recommendations.append(
+                f"Local AI explanation not generated: {explanation['status']}."
+            )
 
     if json_output:
         from nvidia_agent_doctor.reports.json_report import render_json
@@ -64,6 +94,9 @@ def doctor(
 
     if auto_resolve and not json_output:
         _show_remediation_plan(report, console)
+
+    if ai_explain and not json_output:
+        _show_ai_explanation(report, console)
 
     sys.exit(report.exit_code)
 
@@ -414,3 +447,12 @@ def _show_remediation_plan(report: DiagnosticReport, console: Console) -> None:
         console.print(f"  [yellow]-> {step.get('suggested_action') or step.get('recommendation')}[/yellow]")
         if step.get("command"):
             console.print(f"  [cyan]Manual command: {step['command']}[/cyan]")
+
+
+def _show_ai_explanation(report: DiagnosticReport, console: Console) -> None:
+    """Render a model explanation only after an explicit local request."""
+    console.print("\n[bold]Local model explanation[/bold]")
+    if report.ai_explanation:
+        console.print(report.ai_explanation)
+    else:
+        console.print("[yellow]No local model explanation was generated.[/yellow]")

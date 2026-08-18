@@ -124,6 +124,7 @@ nad doctor --json              # Machine-readable JSON output
 nad doctor --verbose           # Detailed output
 nad doctor --fix               # Show remediation suggestions
 nad doctor --auto-resolve      # Generate a review-only remediation plan
+nad doctor --ai-explain --model llama3.2  # Prepare a local-model explanation
 nad interactive                # Guided local interactive console
 nad doctor --quiet             # Minimal output (CI-friendly)
 ```
@@ -247,6 +248,8 @@ nvidia-agent-doctor/
 **Secret redaction:** Terminal, JSON, Markdown, HTML, MCP arguments, URLs, metadata, and handled exception messages pass through the same redaction boundary. The `nad security leak-check` command runs deterministic local regression probes; it is not a proof that every possible secret format is detectable.
 
 **Remediation:** `nad doctor --auto-resolve` generates a platform-aware plan for human review. It never installs packages, changes drivers, or executes shell commands automatically.
+
+**Local AI explanation:** `nad doctor --ai-explain --model <name> --allow-model-request` can contact only a loopback Ollama `/api/generate` endpoint. Diagnostic evidence is redacted first; no cloud provider, API key, telemetry, or remote endpoint is used.
 
 **Interactive mode:** `nad interactive` is a keyboard-driven Rich console for running the existing local doctor, GPU, CUDA, and security checks. It is not a live telemetry dashboard and does not run benchmarks.
 
