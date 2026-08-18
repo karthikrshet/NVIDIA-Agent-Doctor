@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from nvidia_agent_doctor.security.credentials import redact_text
+
 
 def check_pytorch() -> dict[str, Any]:
     """
@@ -54,18 +56,26 @@ def check_pytorch() -> dict[str, Any]:
                 pass
 
             # Lightweight compute check: allocate small tensor and do a dot product
+            a: Any | None = None
+            b: Any | None = None
             try:
                 a = torch.tensor([1.0, 2.0, 3.0], device="cuda")
                 b = torch.tensor([4.0, 5.0, 6.0], device="cuda")
                 dot = torch.dot(a, b).item()
                 result["basic_compute_pass"] = abs(dot - 32.0) < 0.001
-            except Exception as e:
+            except Exception as exc:
                 result["basic_compute_pass"] = False
-                result["compute_error"] = str(e)
+                result["compute_error"] = redact_text(str(exc))
+            finally:
+                del a, b
+                try:
+                    torch.cuda.empty_cache()
+                except Exception:
+                    pass
 
     except ImportError:
         pass
-    except Exception as e:
-        result["error"] = str(e)
+    except Exception as exc:
+        result["error"] = redact_text(str(exc))
 
     return result

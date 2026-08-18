@@ -6,6 +6,8 @@ import time
 from math import isqrt
 from typing import Any
 
+from nvidia_agent_doctor.security.credentials import redact_text
+
 DEFAULT_MAX_MEMORY_MB = 128
 DEFAULT_TIMEOUT_SECONDS = 15
 
@@ -41,12 +43,14 @@ def _benchmark_gpu(max_memory_mb: int, timeout_seconds: int) -> dict[str, Any]:
         if not torch.cuda.is_available():
             return {"skipped": True, "reason": "CUDA not available"}
 
-        # Inputs and output are bounded by the configured memory budget.
-        size = max(128, isqrt((max_memory_mb * 1024 * 1024) // 12))
-        deadline = time.monotonic() + timeout_seconds
-        a = torch.randn(size, size, device="cuda")
-        b = torch.randn(size, size, device="cuda")
+        a: Any | None = None
+        b: Any | None = None
         try:
+            # Inputs and output are bounded by the configured memory budget.
+            size = max(128, isqrt((max_memory_mb * 1024 * 1024) // 12))
+            deadline = time.monotonic() + timeout_seconds
+            a = torch.randn(size, size, device="cuda")
+            b = torch.randn(size, size, device="cuda")
             torch.cuda.synchronize()
             times: list[float] = []
             for _ in range(3):
@@ -64,13 +68,18 @@ def _benchmark_gpu(max_memory_mb: int, timeout_seconds: int) -> dict[str, Any]:
                 "tflops": round((2 * size**3) / (avg_ms / 1000) / 1e12, 3),
                 "max_memory_mb": max_memory_mb,
             }
+        except Exception as exc:
+            return {"error": redact_text(str(exc))}
         finally:
             del a, b
-            torch.cuda.empty_cache()
+            try:
+                torch.cuda.empty_cache()
+            except Exception:
+                pass
     except ImportError:
         return {"skipped": True, "reason": "PyTorch not installed"}
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception as exc:
+        return {"error": redact_text(str(exc))}
 
 
 def _benchmark_cuda(max_memory_mb: int, timeout_seconds: int) -> dict[str, Any]:
@@ -81,10 +90,11 @@ def _benchmark_cuda(max_memory_mb: int, timeout_seconds: int) -> dict[str, Any]:
         if not torch.cuda.is_available():
             return {"skipped": True, "reason": "CUDA not available"}
 
-        size = (max_memory_mb * 1024 * 1024) // 8
-        deadline = time.monotonic() + timeout_seconds
-        src = torch.rand(size, device="cuda")
+        src: Any | None = None
         try:
+            size = (max_memory_mb * 1024 * 1024) // 8
+            deadline = time.monotonic() + timeout_seconds
+            src = torch.rand(size, device="cuda")
             times: list[float] = []
             for _ in range(3):
                 if time.monotonic() >= deadline:
@@ -101,13 +111,18 @@ def _benchmark_cuda(max_memory_mb: int, timeout_seconds: int) -> dict[str, Any]:
                 "bandwidth_gb_s": round((size * 4 / avg_s) / 1e9, 2),
                 "max_memory_mb": max_memory_mb,
             }
+        except Exception as exc:
+            return {"error": redact_text(str(exc))}
         finally:
             del src
-            torch.cuda.empty_cache()
+            try:
+                torch.cuda.empty_cache()
+            except Exception:
+                pass
     except ImportError:
         return {"skipped": True, "reason": "PyTorch not installed"}
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception as exc:
+        return {"error": redact_text(str(exc))}
 
 
 def _benchmark_system_memory(max_memory_mb: int, timeout_seconds: int) -> dict[str, Any]:
@@ -131,5 +146,5 @@ def _benchmark_system_memory(max_memory_mb: int, timeout_seconds: int) -> dict[s
             "bandwidth_gb_s": bandwidth_gb_s,
             "note": "Measured result at time of benchmark.",
         }
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception as exc:
+        return {"error": redact_text(str(exc))}

@@ -2,7 +2,7 @@
   "provenance": {
     "kind": "sanitized-real-hardware-capture",
     "captured_on": "2026-08-19",
-    "collector": "nvidia-smi -q --xml-format and --query-gpu=index,compute_cap",
+    "collector": "nvidia-smi -q --xml-format, nvidia-smi --query-gpu=index,compute_cap, and PyTorch CUDA basic compute",
     "sanitization": "GPU UUID, PCI bus identifier, timestamp, host information, and dynamic utilization values were omitted."
   },
   "gpu_count": 1,
@@ -15,5 +15,13 @@
       "vram_total_mb": 4096,
       "compute_capability": "8.6"
     }
-  ]
+  ],
+  "pytorch": {
+    "version": "2.7.1+cu118",
+    "cuda_build": "11.8",
+    "cuda_available": true,
+    "device_count": 1,
+    "compute_capability": "8.6",
+    "basic_compute_pass": true
+  }
 }

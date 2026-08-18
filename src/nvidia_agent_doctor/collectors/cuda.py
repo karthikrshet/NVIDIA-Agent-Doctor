@@ -18,7 +18,10 @@ _MIN_DRIVER_MAJOR_BY_CUDA_MAJOR = {"11": 450, "12": 525, "13": 580}
 _CUDA_COMPATIBILITY_URL = "https://docs.nvidia.com/deploy/cuda-compatibility/"
 
 
-def collect_cuda_info(nvidia_smi_available: bool | None = None) -> CUDAInfo:
+def collect_cuda_info(
+    nvidia_smi_available: bool | None = None,
+    pytorch_cuda_version: str | None = None,
+) -> CUDAInfo:
     """Collect CUDA installation details from environment and filesystem. Never raises."""
     cuda_home = os.environ.get("CUDA_HOME")
     cuda_path = os.environ.get("CUDA_PATH")
@@ -34,7 +37,7 @@ def collect_cuda_info(nvidia_smi_available: bool | None = None) -> CUDAInfo:
         if nvidia_smi_available is None
         else nvidia_smi_available
     )
-    runtime_version = _detect_runtime_version(smi_available)
+    runtime_version = _detect_runtime_version(smi_available, pytorch_cuda_version)
     driver_version = _detect_driver_cuda_version(smi_available)
 
     libraries = _find_cuda_libraries(cuda_home, cuda_path, ld_lib)
@@ -112,8 +115,13 @@ def _parse_nvcc_version(output: str) -> str | None:
     return None
 
 
-def _detect_runtime_version(nvidia_smi_available: bool = True) -> str | None:
+def _detect_runtime_version(
+    nvidia_smi_available: bool = True,
+    pytorch_cuda_version: str | None = None,
+) -> str | None:
     """Detect CUDA runtime version via libcudart or torch."""
+    if pytorch_cuda_version:
+        return pytorch_cuda_version
     # Try via PyTorch if available
     if not nvidia_smi_available:
         return None

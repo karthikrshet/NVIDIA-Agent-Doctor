@@ -27,3 +27,11 @@ def test_recorded_single_gpu_fixture_is_sanitized_real_evidence() -> None:
     assert gpu.vram_total_mb == 4096
     assert gpu.compute_capability == "8.6"
     assert gpu.uuid is None
+
+    pytorch = fixture["pytorch"]
+    assert pytorch["version"] == "2.7.1+cu118"
+    assert pytorch["cuda_build"] == "11.8"
+    assert pytorch["cuda_available"] is True
+    assert pytorch["device_count"] == 1
+    assert pytorch["compute_capability"] == "8.6"
+    assert pytorch["basic_compute_pass"] is True

@@ -28,9 +28,13 @@ def analyze_compatibility(
     """
     section = SectionResult(name="compatibility", display_name="Compatibility")
 
-    gpu_info = collect_gpu_info() if gpu_info is None else gpu_info
-    cuda_info = collect_cuda_info() if cuda_info is None else cuda_info
     pytorch_info = check_pytorch() if pytorch_info is None else pytorch_info
+    gpu_info = collect_gpu_info() if gpu_info is None else gpu_info
+    cuda_info = (
+        collect_cuda_info(pytorch_cuda_version=pytorch_info.get("cuda_version"))
+        if cuda_info is None
+        else cuda_info
+    )
     trt_info = check_tensorrt() if tensorrt_info is None else tensorrt_info
 
     # GPU ↔ Driver: already checked in GPU analyzer
@@ -72,12 +76,16 @@ def analyze_compatibility(
                     ),
                 )
             )
-    elif cuda_info.toolkit_version or cuda_info.runtime_version:
+    elif cuda_info.runtime_version:
         section.checks.append(
             CheckResult(
                 name="cuda_toolkit_runtime",
-                severity=Severity.UNKNOWN,
-                message="Cannot fully compare CUDA toolkit and runtime (one is missing)",
+                severity=Severity.NOT_APPLICABLE,
+                message="CUDA runtime detected; local CUDA toolkit is not installed",
+                detail=(
+                    "A local toolkit is optional for prebuilt CUDA-enabled Python packages. "
+                    "Install it only when compiling CUDA code locally."
+                ),
             )
         )
 
@@ -86,7 +94,21 @@ def analyze_compatibility(
         pt_cuda = pytorch_info["cuda_version"]
         toolkit = cuda_info.toolkit_version
 
-        if toolkit and pt_cuda:
+        if pytorch_info.get("basic_compute_pass") is True:
+            section.checks.append(
+                CheckResult(
+                    name="cuda_pytorch",
+                    severity=Severity.PASS,
+                    message=(
+                        f"PyTorch CUDA build ({pt_cuda}) completed a basic GPU computation: PASS"
+                    ),
+                    detail=(
+                        "This verifies the installed PyTorch build can initialize and execute "
+                        "on the detected NVIDIA GPU."
+                    ),
+                )
+            )
+        elif toolkit and pt_cuda:
             tk_major = toolkit.split(".")[0]
             pt_major = str(pt_cuda).split(".")[0]
             if tk_major != pt_major:

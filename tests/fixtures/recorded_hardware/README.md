@@ -6,7 +6,7 @@ UUID, model-weight, credential, or benchmark data.
 
 | Fixture | Evidence | Status |
 |---|---|---|
-| `rtx3050_windows_driver511_65.json` | Single NVIDIA GPU, driver and CUDA maximum, VRAM, compute capability | Recorded on authorized hardware |
+| `rtx3050_windows_driver511_65.json` | Single NVIDIA GPU, driver and CUDA maximum, VRAM, compute capability, and PyTorch CUDA compute | Recorded on authorized hardware |
 | Multi-GPU | Inventory and per-GPU capability | Pending an authorized multi-GPU host |
 | CUDA/driver mismatch | Actual diagnostic result from a supported test environment | Pending an authorized mismatch test host |
 | Low-memory condition | Observed workload-independent health evidence | Pending an authorized test host |

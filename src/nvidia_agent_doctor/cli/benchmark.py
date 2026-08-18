@@ -46,11 +46,16 @@ def run(
         max_memory_mb=max_memory_mb or config.max_memory_mb,
         timeout_seconds=timeout_seconds or config.timeout_seconds,
     )
+    has_errors = any(
+        isinstance(result, dict) and result.get("error") for result in results.values()
+    )
 
     if json_output:
         import json
 
         typer.echo(json.dumps(results, indent=2, default=str))
+        if has_errors:
+            raise typer.Exit(code=2)
         return
 
     console.print("\n[bold]Benchmark Results[/bold]")
@@ -70,3 +75,5 @@ def run(
         "\n[dim]Benchmark results reflect this specific hardware configuration "
         "and workload at the time of measurement.[/dim]"
     )
+    if has_errors:
+        raise typer.Exit(code=2)

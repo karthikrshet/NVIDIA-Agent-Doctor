@@ -15,7 +15,9 @@ nad benchmark run --yes --max-memory-mb 128 --timeout-seconds 15
 The hardware test module uses real local `nvidia-smi`, CUDA, and (when present)
 PyTorch data. It skips with `GPU VALIDATION BLOCKED` when `nvidia-smi` is not
 available; a skip is not a passing GPU validation result. TensorRT and Triton
-are recorded as optional runtime evidence and are never simulated.
+are recorded as optional runtime evidence and are never simulated. The
+sanitized RTX 3050 fixture also records a successful local PyTorch CUDA basic
+compute check; it does not assert TensorRT, Triton, NIM, or multi-GPU support.
 
 The availability probe uses NVIDIA's documented `nvidia-smi -L` GPU-listing
 operation. This avoids treating older drivers that reject `nvidia-smi --version`

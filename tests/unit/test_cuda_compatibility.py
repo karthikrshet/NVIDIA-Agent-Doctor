@@ -40,6 +40,22 @@ def test_cuda_collector_does_not_launch_nvidia_smi_when_preflight_failed() -> No
     run.assert_not_called()
 
 
+def test_cuda_collector_reuses_the_already_detected_pytorch_cuda_build() -> None:
+    with patch("nvidia_agent_doctor.collectors.cuda._detect_toolkit_version", return_value=None):
+        with patch(
+            "nvidia_agent_doctor.collectors.cuda._detect_driver_cuda_version", return_value="511.65"
+        ):
+            with patch("nvidia_agent_doctor.collectors.cuda._find_cuda_libraries", return_value=[]):
+                with patch(
+                    "nvidia_agent_doctor.collectors.cuda._detect_runtime_version",
+                    return_value="11.8",
+                ) as runtime:
+                    info = collect_cuda_info(nvidia_smi_available=True, pytorch_cuda_version="11.8")
+
+    runtime.assert_called_once_with(True, "11.8")
+    assert info.runtime_version == "11.8"
+
+
 def test_driver_only_cuda_runtime_does_not_require_toolkit_environment_variables() -> None:
     section = analyze_cuda(CUDAInfo(runtime_version="11.6", driver_version="511.65"))
     env_check = next(check for check in section.checks if check.name == "cuda_env_vars")

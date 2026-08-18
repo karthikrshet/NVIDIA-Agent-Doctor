@@ -109,6 +109,12 @@ warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+# PyTorch is optional runtime-detection software. Do not type-check its large
+# transitive package graph (which may target a newer Python than this project).
+module = "torch"
+follow_imports = "skip"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --tb=short"
