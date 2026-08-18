@@ -138,6 +138,7 @@ nad cuda check                 # CUDA installation check
 nad cuda check --verbose       # With environment details
 nad openshell diagnose         # OpenShell runtime diagnostics
 nad nemotron check             # Nemotron / NeMo detection
+nad nemotron nim --allow-local-request --json  # Read-only local NIM readiness check
 ```
 
 ### Security & Analysis
@@ -254,6 +255,8 @@ nvidia-agent-doctor/
 **Interactive mode:** `nad interactive` is a keyboard-driven Rich console for running the existing local doctor, GPU, CUDA, and security checks. It is not a live telemetry dashboard and does not run benchmarks.
 
 **Cluster mode:** `nad cluster scan` does not contact Kubernetes unless `--allow-cluster-access` is provided. When explicitly enabled, it uses read-only fixed `kubectl` queries for node readiness, GPU capacity, and NVIDIA GPU Operator pod phases; it does not print kubeconfig contents or credentials.
+
+**Local NVIDIA NIM:** `nad nemotron nim` checks only the official local readiness path `/v1/health/ready`. It sends no inference request and contacts a service only after `--allow-local-request`; non-loopback endpoints and credential-bearing URLs are rejected.
 
 **Heuristic security scanning:** The skills and MCP scanners use heuristic static analysis. They can produce false positives and false negatives. All findings require human review.
 

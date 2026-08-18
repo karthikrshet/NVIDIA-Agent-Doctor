@@ -57,3 +57,28 @@ def check(
         table.add_row("NemoClaw Version", claw["version"])
 
     console.print(table)
+
+
+@app.command("nim")
+def nim(
+    endpoint: str = typer.Option("http://127.0.0.1:8000", "--endpoint"),
+    allow_local_request: bool = typer.Option(
+        False,
+        "--allow-local-request",
+        help="Allow a read-only request to the validated local NIM readiness endpoint.",
+    ),
+    json_output: bool = typer.Option(False, "--json"),
+) -> None:
+    """Check a local NVIDIA NIM readiness endpoint without sending inference."""
+    import json
+
+    from nvidia_agent_doctor.integrations.nim import check_local_nim
+
+    result = check_local_nim(endpoint, allow_request=allow_local_request)
+    if json_output:
+        typer.echo(json.dumps(result, indent=2))
+    else:
+        console = Console()
+        console.print(f"Local NIM status: {result['status']}")
+        if result.get("recommendation"):
+            console.print(f"[yellow]{result['recommendation']}[/yellow]")
