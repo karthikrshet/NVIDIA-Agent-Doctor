@@ -7,6 +7,30 @@ This project uses [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- `nad tensorrt check` for local TensorRT Python binding, runtime, and builder probes.
+- `nad triton check` for local Triton indicators and an explicit loopback-only readiness check.
+- Sanitized real-hardware evidence for an RTX 3050 with CUDA-enabled PyTorch.
+- Regression coverage for benchmark cleanup, TensorRT error redaction, NIM/Triton hostile URLs, and runtime CLI behavior.
+
+### Changed
+
+- Configuration now accepts only settings consumed by the CLI; unsupported legacy/no-op keys fail validation instead of being accepted silently.
+- The README now distinguishes real integrations, static/heuristic detection, and hardware-validated evidence.
+- The doctor command reuses its PyTorch discovery result during CUDA collection to avoid redundant optional-runtime probing.
+
+### Fixed
+
+- TensorRT detection no longer treats PyTorch CUDA availability as proof of TensorRT/CUDA support-matrix compatibility.
+- Benchmark and PyTorch validation errors are redacted and release GPU cache references on all handled paths.
+- Older NVIDIA-SMI installations that reject `--version` can still be detected through the documented GPU-listing probe.
+- Local NIM and Triton readiness endpoints reject malformed, remote, credential-bearing, query-string, and fragment URLs.
+
+---
+
 ## [0.1.0] - 2024-08-19
 
 ### Added

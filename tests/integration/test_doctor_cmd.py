@@ -150,3 +150,13 @@ def test_invalid_config_returns_exit_code_four(tmp_path: Path) -> None:
 
     assert result.exit_code == 4
     assert json.loads(result.output)["exit_code"] == 4
+
+
+def test_unsupported_noop_config_returns_exit_code_four(tmp_path: Path) -> None:
+    config = tmp_path / "unsupported.toml"
+    config.write_text("[doctor]\nstrict = true")
+
+    result = runner.invoke(app, ["--json", "--config", str(config), "doctor"])
+
+    assert result.exit_code == 4
+    assert json.loads(result.output)["exit_code"] == 4

@@ -256,7 +256,7 @@ config_paths = ["./mcp.json"]
 scan_depth = 3
 ```
 
-Other documented schema sections are validated for forward compatibility but do not silently enable network access, benchmarks, or automatic remediation. Prefer explicit CLI consent flags for operations that could contact local services or a Kubernetes cluster.
+Unsupported settings are rejected rather than retained as no-ops. Explicit CLI consent flags remain required for operations that could contact local services or a Kubernetes cluster.
 
 ## Results, scores, and exit codes
 

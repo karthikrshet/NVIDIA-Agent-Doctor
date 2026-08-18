@@ -28,3 +28,20 @@ def test_invalid_config_never_silently_falls_back(tmp_path: Path, contents: str)
 
     with pytest.raises(ConfigError):
         load_config(config)
+
+
+@pytest.mark.parametrize(
+    "contents",
+    [
+        "[doctor]\nstrict = true",
+        "[benchmark]\nwarmup_runs = 3",
+        "[security]\nenabled = false",
+        "[report]\ndefault_format = 'html'",
+    ],
+)
+def test_removed_noop_configuration_is_rejected(tmp_path: Path, contents: str) -> None:
+    config = tmp_path / "unsupported.toml"
+    config.write_text(contents)
+
+    with pytest.raises(ConfigError, match="Invalid configuration"):
+        load_config(config)

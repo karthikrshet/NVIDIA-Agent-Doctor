@@ -19,57 +19,25 @@ class StrictConfigModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class DoctorConfig(StrictConfigModel):
-    strict: bool = False
-
-
-class SecurityConfig(StrictConfigModel):
-    enabled: bool = True
-    credential_scan: bool = True
-
-
 class BenchmarkConfig(StrictConfigModel):
-    enabled: bool = False
-    warmup_runs: int = 3
-    benchmark_runs: int = 10
     max_memory_mb: int = Field(default=128, ge=16, le=1024)
     timeout_seconds: int = Field(default=15, ge=1, le=300)
 
 
-class OpenShellConfig(StrictConfigModel):
-    enabled: bool = True
-
-
 class MCPConfig(StrictConfigModel):
-    enabled: bool = True
     config_paths: list[str] = Field(default_factory=list)
 
 
 class SkillsConfig(StrictConfigModel):
-    enabled: bool = True
     scan_depth: int = 3
 
 
-class ReportConfig(StrictConfigModel):
-    default_format: str = "terminal"
-    output_dir: str = "."
-
-
-class LoggingConfig(StrictConfigModel):
-    level: str = "WARNING"
-
-
 class NADConfig(StrictConfigModel):
-    """Top-level configuration for NVIDIA Agent Doctor."""
+    """Top-level configuration for settings actively consumed by the CLI."""
 
-    doctor: DoctorConfig = Field(default_factory=DoctorConfig)
-    security: SecurityConfig = Field(default_factory=SecurityConfig)
     benchmark: BenchmarkConfig = Field(default_factory=BenchmarkConfig)
-    openshell: OpenShellConfig = Field(default_factory=OpenShellConfig)
     mcp: MCPConfig = Field(default_factory=MCPConfig)
     skills: SkillsConfig = Field(default_factory=SkillsConfig)
-    report: ReportConfig = Field(default_factory=ReportConfig)
-    logging: LoggingConfig = Field(default_factory=LoggingConfig)
 
 
 def _load_toml(path: Path) -> dict[str, Any]:

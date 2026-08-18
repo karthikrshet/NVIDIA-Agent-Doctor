@@ -1,31 +1,14 @@
 # NVIDIA Agent Doctor example configuration.
-# This file is intentionally safe: diagnostics stay local and benchmarks remain opt-in.
-
-[doctor]
-# When enabled, a missing optional component is reported for environments expected to use it.
-strict = false
-
-[security]
-enabled = true
-credential_scan = true
+# This schema contains only settings actively used by CLI commands.
 
 [benchmark]
-# Benchmarks never run as part of `nad doctor`.
-enabled = false
-warmup_runs = 3
-benchmark_runs = 10
+# Benchmarks never run as part of `nad doctor`; these only set safe defaults
+# for an explicitly requested `nad benchmark run` command.
+max_memory_mb = 128
+timeout_seconds = 15
 
 [mcp]
-enabled = true
 config_paths = []
 
 [skills]
-enabled = true
 scan_depth = 3
-
-[report]
-default_format = "terminal"
-output_dir = "."
-
-[logging]
-level = "WARNING"
