@@ -142,10 +142,12 @@ nad nemotron benchmark --yes   # Opt-in Nemotron benchmark
 
 ```bash
 nad security scan              # Baseline security analysis
+nad security leak-check        # Verify redaction regression probes locally
 nad mcp scan                   # MCP server security analysis
 nad mcp scan --config ./mcp.json  # With explicit config path
 nad skills scan ./skills/      # Scan agent skills directory
 nad skills scan . --risk-graph # Include cross-skill risk graph
+nad skills verify ./SKILL.md   # Verify detached SHA-256 digest + SKILLCARD.yaml
 nad compatibility check        # Cross-component compatibility
 ```
 
@@ -157,6 +159,7 @@ nad report generate --format json      # JSON
 nad report generate --format markdown  # Markdown
 nad report generate --format html      # Self-contained HTML
 nad report generate --format html --output report.html
+nad report generate --format compliance-audit  # Evidence-oriented readiness mapping
 ```
 
 ### Benchmarks (opt-in only)
@@ -234,10 +237,10 @@ nvidia-agent-doctor/
 **Privacy-first design:**
 - ✅ **No telemetry** — all diagnostics are local-only
 - ✅ **No cloud upload** — nothing leaves your machine
-- ✅ **No secret collection** — API keys and tokens are always redacted
+- ✅ **No secret collection** — known API-key, token, password, and credential formats are redacted at report boundaries
 - ✅ **Read-only by default** — `nad doctor` never modifies your system
 
-**Secret redaction:** All reports automatically redact API keys, tokens, passwords, and credentials. They are never printed to the terminal or written to report files.
+**Secret redaction:** Terminal, JSON, Markdown, HTML, MCP arguments, URLs, metadata, and handled exception messages pass through the same redaction boundary. The `nad security leak-check` command runs deterministic local regression probes; it is not a proof that every possible secret format is detectable.
 
 **Heuristic security scanning:** The skills and MCP scanners use heuristic static analysis. They can produce false positives and false negatives. All findings require human review.
 
@@ -300,6 +303,8 @@ jobs:
 - OpenShell, NemoClaw, and Nemotron detection is **heuristic** — results vary by installation method
 - Skills scanner is **static analysis only** — cannot detect runtime behavior
 - MCP scanner analyzes configuration, not live server behavior
+- `nad skills verify` supports a detached SHA-256 digest and local SKILLCARD schema validation. A digest provides integrity, not publisher authentication; OpenSSF/OMS public-key verification is not currently implemented.
+- The readiness report is not a compliance certification or an assessment against a named framework
 - Benchmark results are hardware and workload specific — not directly comparable across systems
 - This tool does not replace NVIDIA Nsight, dedicated security scanners, or official NVIDIA monitoring tools
 

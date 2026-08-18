@@ -44,6 +44,11 @@ class TestRedactSecrets:
     def test_debug_flag_not_redacted(self) -> None:
         assert redact_secrets("DEBUG", "true") == "true"
 
+    def test_author_metadata_is_not_treated_as_authentication(self) -> None:
+        assert redact_secrets("author", "NVIDIA Agent Doctor Contributors") == (
+            "NVIDIA Agent Doctor Contributors"
+        )
+
 
 class TestRedactEnvDict:
     def test_dict_with_secrets(self) -> None:

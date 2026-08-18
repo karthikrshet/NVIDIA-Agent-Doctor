@@ -10,7 +10,8 @@ from urllib.parse import parse_qsl, urlsplit, urlunsplit
 
 # Patterns that suggest a value is a secret
 _SECRET_KEY_PATTERNS = re.compile(
-    r"(api[_-]?key|apikey|secret|password|passwd|token|credential|auth|"
+    r"(api[_-]?key|apikey|secret|password|passwd|token|credential|"
+    r"auth(?:orization|entication)?(?:$|[_-])|"
     r"private[_-]?key|access[_-]?key|client[_-]?secret|bearer|"
     r"ngc[_-]?api[_-]?key|openai[_-]?key|hf[_-]?token|"
     r"huggingface[_-]?token|anthropic|gemini[_-]?key)",
