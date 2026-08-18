@@ -8,7 +8,8 @@ name: NVIDIA Agent Doctor
 #
 # jobs:
 #   diagnose:
-#     uses: your-org/nvidia-agent-doctor/.github/workflows/nvidia-agent-doctor.yml@main
+#     # Pin to an immutable NVIDIA Agent Doctor commit or release tag.
+#     uses: karthikrshet/NVIDIA-Agent-Doctor/.github/workflows/nvidia-agent-doctor.yml@<commit-sha>
 #     with:
 #       gpu_required: false
 
@@ -48,7 +49,22 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out the calling repository
+        uses: actions/checkout@v4
+        with:
+          path: target-repository
+          persist-credentials: false
+
+      - name: Check out the workflow's NVIDIA Agent Doctor source
+        uses: actions/checkout@v4
+        with:
+          # A reusable workflow otherwise checks out the caller's repository.
+          # workflow_sha binds this source to the exact commit containing this
+          # workflow, avoiding an unrelated package or a moving branch ref.
+          repository: karthikrshet/NVIDIA-Agent-Doctor
+          ref: ${{ github.workflow_sha }}
+          path: nvidia-agent-doctor
+          persist-credentials: false
 
       - name: Set up Python ${{ inputs.python_version || '3.11' }}
         uses: actions/setup-python@v5
@@ -56,7 +72,7 @@ jobs:
           python-version: ${{ inputs.python_version || '3.11' }}
 
       - name: Install checked-out NVIDIA Agent Doctor
-        run: pip install -e .
+        run: pip install -e nvidia-agent-doctor
 
       - name: Run nad doctor
         id: run_doctor
@@ -65,6 +81,7 @@ jobs:
           EXIT_CODE=${EXIT_CODE:-0}
           echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
           echo "Doctor exit code: $EXIT_CODE"
+        working-directory: target-repository
 
       - name: Parse health score
         id: parse_report
@@ -73,37 +90,31 @@ jobs:
           import json
           with open('nad-report.json') as f:
               data = json.load(f)
-          # Calculate score from sections
-          scores = []
-          for section in data.get('sections', {}).values():
-              checks = section.get('checks', [])
-              scoreable = [c for c in checks if c['severity'] not in ['NOT_INSTALLED', 'NOT_APPLICABLE', 'UNKNOWN']]
-              if scoreable:
-                  penalty = sum(20 if c['severity'] == 'ERROR' else 5 if c['severity'] == 'WARNING' else 0 for c in scoreable)
-                  max_penalty = len(scoreable) * 20
-                  scores.append(max(0, round(100 - (penalty / max_penalty) * 100)) if max_penalty > 0 else 100)
-          print(round(sum(scores) / len(scores)) if scores else 100)
+          print(data['summary']['overall_score'])
           ")
           echo "health_score=$SCORE" >> $GITHUB_OUTPUT
           echo "Health score: $SCORE"
+        working-directory: target-repository
 
       - name: Run security scan
         run: nad security scan --json > nad-security.json || true
+        working-directory: target-repository
 
       - name: Scan skills
         if: ${{ inputs.skills_path != '' }}
         env:
           SKILLS_PATH: ${{ inputs.skills_path }}
         run: nad skills scan "$SKILLS_PATH" --json > nad-skills.json || true
+        working-directory: target-repository
 
       - name: Upload reports
         uses: actions/upload-artifact@v4
         with:
           name: nad-reports
           path: |
-            nad-report.json
-            nad-security.json
-            nad-skills.json
+            target-repository/nad-report.json
+            target-repository/nad-security.json
+            target-repository/nad-skills.json
           if-no-files-found: ignore
 
       - name: Fail if GPU required but not found
@@ -122,3 +133,4 @@ jobs:
             echo "ERROR: GPU required but not detected."
             exit 2
           fi
+        working-directory: target-repository

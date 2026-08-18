@@ -5,7 +5,6 @@
 > GPU • CUDA • OpenShell • NemoClaw • Nemotron • MCP • Agent Skills
 
 [![CI](https://github.com/karthikrshet/nvidia-agent-doctor/actions/workflows/ci.yml/badge.svg)](https://github.com/karthikrshet/nvidia-agent-doctor/actions/workflows/ci.yml)
-[![PyPI version](https://badge.fury.io/py/nvidia-agent-doctor.svg)](https://badge.fury.io/py/nvidia-agent-doctor)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
@@ -33,43 +32,15 @@ When something breaks, developers manually chase through all these layers.
 ## 30-Second Demo
 
 ```bash
-pip install nvidia-agent-doctor
+git clone https://github.com/karthikrshet/NVIDIA-Agent-Doctor.git
+cd NVIDIA-Agent-Doctor
+python -m pip install -e ".[dev]"
 nad doctor
 ```
 
-```
-╭──────────────────────────────────────────────╮
-│          NVIDIA AGENT DOCTOR                 │
-│  Independent Open-Source Diagnostic Toolkit  │
-╰──────────────────────────────────────────────╯
-
-┌────────────────────────────┬──────────────────┐
-│ System                     │  ✓  PASS         │
-│ NVIDIA GPU                 │  ✓  PASS         │
-│ CUDA                       │  ⚠  WARNING      │
-│ PyTorch                    │  ✓  PASS         │
-│ Docker                     │  ✓  PASS         │
-│ Security                   │  ✓  PASS         │
-│ Compatibility              │  ✓  PASS         │
-│ TensorRT                   │  –  NOT_INSTALLED│
-│ Triton                     │  –  NOT_INSTALLED│
-│ OpenShell                  │  –  NOT_INSTALLED│
-│ Nemotron                   │  –  NOT_INSTALLED│
-└────────────────────────────┴──────────────────┘
-
-╭──────────────────────────────────────────────╮
-│ Diagnostic Summary                           │
-│                                              │
-│ Overall Health: 91/100  ██████████████████░░ │
-│ Warnings:       1                            │
-│ Critical Issues: 0                           │
-│ Recommendations: 2                           │
-╰──────────────────────────────────────────────╯
-
-Recommendations:
-  1. Set CUDA_HOME to your CUDA installation directory
-  2. Install CUDA-enabled PyTorch for GPU workloads
-```
+The result is calculated from the machine on which it runs. A CPU-only
+machine reports NVIDIA components as unavailable or not installed; it never
+uses fabricated GPU results.
 
 ---
 
@@ -99,15 +70,11 @@ Recommendations:
 
 ## Installation
 
+**From source (currently the supported installation method):**
 ```bash
-pip install nvidia-agent-doctor
-```
-
-**From source:**
-```bash
-git clone https://github.com/karthikrshet/nvidia-agent-doctor.git
-cd nvidia-agent-doctor
-pip install -e ".[dev]"
+git clone https://github.com/karthikrshet/NVIDIA-Agent-Doctor.git
+cd NVIDIA-Agent-Doctor
+python -m pip install -e ".[dev]"
 ```
 
 **Requirements:** Python 3.11+
@@ -298,16 +265,10 @@ on: [push, pull_request]
 
 jobs:
   diagnose:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - run: pip install nvidia-agent-doctor
-      - run: nad doctor --json
-      - run: nad security scan --json
-      - run: nad skills scan ./skills/ --json
+    # Pin to an immutable NVIDIA Agent Doctor release tag or commit SHA.
+    uses: karthikrshet/NVIDIA-Agent-Doctor/.github/workflows/nvidia-agent-doctor.yml@<commit-sha>
+    with:
+      skills_path: ./skills
 ```
 
 **Note:** Standard GitHub-hosted runners don't have NVIDIA GPUs. GPU-specific checks will show `NOT_INSTALLED`, which is expected and correct. Use self-hosted NVIDIA GPU runners for full hardware diagnostics.

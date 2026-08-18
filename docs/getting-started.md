@@ -3,7 +3,9 @@
 ## Installation
 
 ```bash
-pip install nvidia-agent-doctor
+git clone https://github.com/karthikrshet/NVIDIA-Agent-Doctor.git
+cd NVIDIA-Agent-Doctor
+python -m pip install -e ".[dev]"
 ```
 
 ## First Run
