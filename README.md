@@ -1,332 +1,336 @@
-# NVIDIA Agent Doctor 🩺
+# NVIDIA Agent Doctor
 
-> **An independent open-source diagnostic, security, compatibility and benchmarking toolkit for NVIDIA AI-agent environments.**
->
-> GPU • CUDA • OpenShell • NemoClaw • Nemotron • MCP • Agent Skills
+> An independent, local-first CLI for diagnosing NVIDIA AI environments and reviewing agent, MCP, and skill configuration risk.
 
 [![CI](https://github.com/karthikrshet/nvidia-agent-doctor/actions/workflows/ci.yml/badge.svg)](https://github.com/karthikrshet/nvidia-agent-doctor/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
----
+> **Independent project:** NVIDIA Agent Doctor is not affiliated with, endorsed by, or an official product of NVIDIA Corporation. It does not claim NVIDIA certification or vendor support.
 
-> ⚠️ **Disclaimer:** NVIDIA Agent Doctor is an **independent open-source project** and is **not affiliated with, endorsed by, or an official product of NVIDIA Corporation.**
+`nad` answers a practical question: **what can this machine actually run, what is misconfigured, and what configuration needs human security review?** It combines read-only hardware and software checks with static inspection of MCP and agent-skill files. It does not change drivers, install packages, start servers, upload data, or run a benchmark unless you explicitly request the relevant action.
 
----
+## Contents
 
-## The Problem
+- [What it checks](#what-it-checks)
+- [Install and first run](#install-and-first-run)
+- [Common workflows](#common-workflows)
+- [Command reference](#command-reference)
+- [Configuration](#configuration)
+- [Results, scores, and exit codes](#results-scores-and-exit-codes)
+- [Security and privacy model](#security-and-privacy-model)
+- [Real hardware validation](#real-hardware-validation)
+- [Scope and limitations](#scope-and-limitations)
+- [Development](#development)
 
-Modern NVIDIA AI agent environments stack many layers:
+## What it checks
 
-```
-NVIDIA GPU → Driver → CUDA → PyTorch / TensorRT → Triton → NeMo → Nemotron
-    → OpenShell → NemoClaw → MCP Servers → Agent Skills → Network → Security
-```
+The default `nad doctor` command is read-only. It checks the local operating system, NVIDIA GPU state, CUDA evidence, optional Python integrations, Docker, baseline security posture, and cross-component compatibility. Optional components are reported as `NOT_INSTALLED`, rather than treated as failures.
 
-When something breaks, developers manually chase through all these layers.
+| Area | What the tool does today | Classification |
+|---|---|---|
+| NVIDIA GPU | Uses `nvidia-smi` XML with a query fallback to read inventory, driver, VRAM, utilization, temperature, power when available, and compute capability when supported. | Real local integration |
+| CUDA | Reads `nvcc`, CUDA environment variables, driver evidence, and an installed PyTorch CUDA build when present. Driver compatibility is limited to documented CUDA major-family minimums. | Real local integration; not a full support matrix |
+| PyTorch | Imports the package when installed, checks CUDA availability/devices, and performs one tiny GPU dot product. | Real local integration |
+| Docker | Detects Docker and NVIDIA container-runtime indicators. | Local detection |
+| TensorRT | Checks whether the local Python package imports and whether basic builder/runtime indicators are present. | Partial local detection |
+| Triton Inference Server | Checks binary, process, and container indicators. It does not send inference requests. | Heuristic detection |
+| NeMo, Nemotron, NemoClaw | Checks package, CLI, and configured local indicators. | Heuristic detection |
+| NVIDIA NIM | Optionally sends a read-only request to a validated loopback readiness endpoint; model-list discovery is also local and opt-in. | Limited local integration |
+| OpenShell | Checks documented local CLI/config/process indicators and reports isolation-policy indicators without changing policy. | Heuristic detection |
+| MCP | Discovers supported JSON configuration files and statically reviews command, environment, transport, and endpoint risk. | Static configuration analysis |
+| Agent skills | Parses `SKILL.md` files, builds a risk graph, and detects suspicious static patterns. | Static heuristic analysis |
+| Kubernetes | Runs fixed, read-only `kubectl` queries only after explicit consent. | Opt-in local cluster inspection |
+| Benchmark | Measures small PyTorch GPU matrix multiplication, CUDA copy, and optional system-memory copy under explicit memory/time limits. | Opt-in measured benchmark |
 
-**NVIDIA Agent Doctor gives you one command to inspect them all.**
+`PASS` means the specific local check succeeded. It does **not** certify a workload, a cluster, an image, a vendor support matrix, or the security of an agent.
 
----
+## Install and first run
 
-## 30-Second Demo
+### Requirements
+
+- Python 3.11+ (CI validates Python 3.11 and 3.12)
+- `nvidia-smi` on `PATH` for NVIDIA GPU inventory and driver checks
+- Optional: a CUDA-enabled PyTorch build in the same Python environment for a real PyTorch CUDA compute check
+- Optional: Docker, `kubectl`, Ollama, NIM, TensorRT, Triton, OpenShell, and NeMo-related tooling only if you want those checks
+
+The CUDA toolkit (`nvcc`) is not required for a prebuilt CUDA-enabled PyTorch wheel. It is needed when you compile CUDA code locally.
+
+### Install from source
+
+Source installation is the supported distribution path at this stage; do not assume a PyPI package exists.
 
 ```bash
 git clone https://github.com/karthikrshet/NVIDIA-Agent-Doctor.git
 cd NVIDIA-Agent-Doctor
-python -m pip install -e ".[dev]"
+python -m pip install -e .
+nad --version
 nad doctor
 ```
 
-The result is calculated from the machine on which it runs. A CPU-only
-machine reports NVIDIA components as unavailable or not installed; it never
-uses fabricated GPU results.
+For development tools and the test suite:
 
----
-
-## Features
-
-| Feature | Status |
-|---------|--------|
-| GPU detection & health | ✅ v0.1 |
-| CUDA diagnostics | ✅ v0.1 |
-| PyTorch validation | ✅ v0.1 |
-| Docker / container runtime | ✅ v0.1 |
-| Security baseline scan | ✅ v0.1 |
-| Cross-component compatibility | ✅ v0.1 |
-| JSON / Markdown / HTML reports | ✅ v0.1 |
-| OpenShell diagnostics | ✅ v0.1 (heuristic) |
-| MCP server analysis | ✅ v0.1 |
-| Agent Skills scanner | ✅ v0.1 |
-| Cross-skill risk graph | ✅ v0.1 |
-| Nemotron / NeMo detection | ✅ v0.1 (heuristic) |
-| TensorRT detection | ✅ v0.1 (optional import heuristic) |
-| Bounded benchmark engine | ✅ v0.1 (opt-in; measurement only) |
-| GitHub Action | ✅ v0.1 |
-| HTML dashboard | 🔜 v0.5 |
-| Plugin system | 🔜 v0.4 |
-
----
-
-## Installation
-
-**From source (currently the supported installation method):**
 ```bash
-git clone https://github.com/karthikrshet/NVIDIA-Agent-Doctor.git
-cd NVIDIA-Agent-Doctor
 python -m pip install -e ".[dev]"
 ```
 
-**Requirements:** Python 3.11+
+On a CPU-only machine, `nad doctor` completes normally and reports GPU-specific components as unavailable or optional. It never fabricates a GPU result.
 
----
-
-## CLI Reference
-
-### Core Commands
+### First commands to run
 
 ```bash
-nad doctor                     # Full environment diagnostic
-nad doctor --json              # Machine-readable JSON output
-nad doctor --verbose           # Detailed output
-nad doctor --fix               # Show remediation suggestions
-nad doctor --auto-resolve      # Generate a review-only remediation plan
-nad doctor --ai-explain --model llama3.2  # Prepare a local-model explanation
-nad interactive                # Guided local interactive console
-nad doctor --quiet             # Minimal output (CI-friendly)
+# Human-readable environment summary
+nad doctor
+
+# Machine-readable diagnostic report; validate it in another tool if needed
+nad doctor --json
+
+# Targeted GPU and CUDA evidence
+nad gpu info --json
+nad gpu health --json
+nad cuda check --json
+nad compatibility check --json
 ```
 
-### Component Commands
+To inspect where time is spent on your machine, use `nad doctor --json --profile`. PyTorch import and CUDA initialization can dominate a first run when CUDA-enabled PyTorch is installed.
+
+## Common workflows
+
+### Diagnose a local GPU environment
 
 ```bash
-nad gpu info                   # Detailed GPU info
-nad gpu health                 # GPU health checks
-nad cuda check                 # CUDA installation check
-nad cuda check --verbose       # With environment details
-nad openshell diagnose         # OpenShell runtime diagnostics
-nad nemotron check             # Nemotron / NeMo detection
-nad nemotron nim --allow-local-request --json  # Read-only local NIM readiness check
-nad nemotron nim --allow-local-request --models # Also list served local NIM model IDs
+nad doctor --json
+nad gpu health
+nad cuda check
+nad compatibility check
 ```
 
-### Security & Analysis
+The compatibility report only makes claims supported by the discovered environment. For example, a successful PyTorch GPU operation verifies that installed PyTorch can initialize and execute on the detected GPU; it does not establish TensorRT compatibility.
+
+### Review MCP configuration without exposing secrets
 
 ```bash
-nad security scan              # Baseline security analysis
-nad security leak-check        # Verify redaction regression probes locally
-nad mcp scan                   # MCP server security analysis
-nad mcp scan --config ./mcp.json  # With explicit config path
-nad skills scan ./skills/      # Scan agent skills directory
-nad skills scan . --risk-graph # Include cross-skill risk graph
-nad skills verify ./SKILL.md   # Verify detached SHA-256 digest + SKILLCARD.yaml
-nad test-agent ./skills --json # Static agent/MCP wiring preflight; executes nothing
-nad cluster scan               # Inspect local kubectl availability only
-nad cluster scan --allow-cluster-access --json  # Explicit read-only cluster query
-nad compatibility check        # Cross-component compatibility
+# Built-in discovery locations plus an explicit file
+nad mcp scan --config examples/mcp/example-mcp-config.json --json
+
+# Security baseline and deterministic redaction regression probes
+nad security scan --json
+nad security leak-check
 ```
 
-### Reports
+MCP inspection reads configuration. It does not start MCP servers, execute configured commands, or test live tool permissions.
+
+### Review agent skills before use
 
 ```bash
-nad report generate                    # Terminal report
-nad report generate --format json      # JSON
-nad report generate --format markdown  # Markdown
-nad report generate --format html      # Self-contained HTML
-nad report generate --format html --output report.html
-nad report generate --format compliance-audit  # Evidence-oriented readiness mapping
+nad skills scan examples/skills --risk-graph --json
+nad skills verify path/to/SKILL.md --signature path/to/skill.sig --json
+nad test-agent examples/skills --mcp-config examples/mcp/example-mcp-config.json --json
 ```
 
-### Benchmarks (opt-in only)
+`nad skills scan` and `nad test-agent` are static preflight checks. They do not run a skill, invoke an MCP server, call a model, or make a network request. `skills verify` currently validates a detached SHA-256 digest and a local `SKILLCARD.yaml` schema. A digest proves integrity of the supplied file, not publisher identity; public-key/OpenSSF Model Signing verification is not implemented.
+
+### Produce a shareable report
 
 ```bash
-nad benchmark run              # GPU + system benchmark (confirmation required)
-nad benchmark run --yes        # Skip confirmation
-nad benchmark run --gpu-only   # GPU benchmark only
+nad report generate --format json --output nad-report.json
+nad report generate --format markdown --output nad-report.md
+nad report generate --format html --output nad-report.html
+nad report generate --format compliance-audit --output readiness.md
 ```
 
----
+JSON, Markdown, HTML, terminal, and compliance-audit renderers apply the project’s credential redaction boundary. Reports still contain environment facts such as operating-system and hardware information. Review reports before sharing them externally.
 
-## Diagnostic Categories
+### Run a safe, bounded benchmark
 
-| Status | Meaning |
-|--------|---------|
-| `PASS` | Component is healthy |
-| `WARNING` | Potential issue detected, review recommended |
-| `ERROR` | Critical issue requiring action |
-| `NOT_INSTALLED` | Optional component not present (not a failure) |
-| `NOT_APPLICABLE` | Check doesn't apply to this environment |
-| `UNKNOWN` | Could not determine status |
+Benchmarks are never part of `nad doctor`. They require confirmation unless `--yes` is supplied and enforce a memory range of 16–1024 MB and a timeout range of 1–300 seconds.
 
----
+```bash
+# Conservative explicit GPU-only measurement
+nad benchmark run --gpu-only --yes --max-memory-mb 16 --timeout-seconds 15 --json
 
-## Exit Codes
-
-| Code | Meaning |
-|------|---------|
-| `0` | All checks passed |
-| `1` | Warnings present |
-| `2` | Errors present |
-| `3` | Security issues (HIGH or CRITICAL) |
-| `4` | Invalid configuration |
-
----
-
-## Architecture
-
-```
-nvidia-agent-doctor/
-├── cli/              # Typer CLI commands
-├── core/             # Data models, severity, config
-├── collectors/       # System, GPU, CUDA, Docker, Python, Network
-├── integrations/     # Per-component adapters
-├── analyzers/        # Health analysis logic
-├── skills/           # SKILL.md parser and scanner
-├── security/         # Credential detection, permissions, MCP/skills security
-├── benchmark/        # Opt-in GPU benchmarks
-└── reports/          # Terminal (Rich), JSON, Markdown, HTML
+# Include the optional system-memory and CUDA-copy measurements
+nad benchmark run --yes --max-memory-mb 128 --timeout-seconds 15
 ```
 
----
+Results are measured on the current machine and workload only. They are not fabricated, are not hardware specifications, and should not be compared across unrelated configurations. A timeout produces exit code `2`; GPU memory references are cleaned up on success and failure.
 
-## Supported NVIDIA Technologies
+### Query a local NIM service safely
 
-| Technology | Detection | Diagnostics |
-|-----------|-----------|-------------|
-| NVIDIA GPU | ✅ nvidia-smi | ✅ VRAM, temp, utilization |
-| NVIDIA Driver | ✅ | ✅ version |
-| CUDA | ✅ nvcc, env vars | ✅ version compatibility |
-| PyTorch | ✅ import | ✅ CUDA, compute test |
-| TensorRT | ✅ import | ✅ builder/runtime |
-| Triton IS | ✅ binary/process | ✅ status |
-| NeMo / Nemotron | ✅ heuristic | ✅ package/NIM |
-| OpenShell | ✅ heuristic | ✅ config, runtime |
-| MCP | ✅ config scan | ✅ security analysis |
-| Agent Skills | ✅ SKILL.md scan | ✅ static analysis |
-| Docker | ✅ | ✅ NVIDIA runtime |
+```bash
+# No request is made without --allow-local-request
+nad nemotron nim --allow-local-request --json
 
----
+# Optional local model-list query; no inference request is sent
+nad nemotron nim --allow-local-request --models --json
+```
 
-## Security & Privacy
+Only loopback readiness and model-list endpoints are accepted. Remote URLs, credential-bearing URLs, query strings, and fragments are rejected.
 
-**Privacy-first design:**
-- ✅ **No telemetry** — all diagnostics are local-only
-- ✅ **No cloud upload** — nothing leaves your machine
-- ✅ **No secret collection** — known API-key, token, password, and credential formats are redacted at report boundaries
-- ✅ **Read-only by default** — `nad doctor` never modifies your system
+### Review a Kubernetes context deliberately
 
-**Secret redaction:** Terminal, JSON, Markdown, HTML, MCP arguments, URLs, metadata, and handled exception messages pass through the same redaction boundary. The `nad security leak-check` command runs deterministic local regression probes; it is not a proof that every possible secret format is detectable.
+```bash
+# Detect whether kubectl is available; does not contact a cluster
+nad cluster scan --json
 
-**Remediation:** `nad doctor --auto-resolve` generates a platform-aware plan for human review. It never installs packages, changes drivers, or executes shell commands automatically.
+# Fixed, read-only queries against the current kubectl context
+nad cluster scan --allow-cluster-access --json
+```
 
-**Local AI explanation:** `nad doctor --ai-explain --model <name> --allow-model-request` can contact only a loopback Ollama `/api/generate` endpoint. Diagnostic evidence is redacted first; credential-bearing URLs, query strings, remote endpoints, and model responses over 1 MB are rejected. No cloud provider, API key, or telemetry is used.
+The cluster command does not edit workloads, policies, or contexts. Confirm that the current `kubectl` context is appropriate before granting access.
 
-**Interactive mode:** `nad interactive` is a keyboard-driven Rich console for running the existing local doctor, GPU, CUDA, and security checks. It is not a live telemetry dashboard and does not run benchmarks.
+## Command reference
 
-**Cluster mode:** `nad cluster scan` does not contact Kubernetes unless `--allow-cluster-access` is provided. When explicitly enabled, it uses read-only fixed `kubectl` queries for node readiness, GPU capacity, and NVIDIA GPU Operator pod phases; it does not print kubeconfig contents or credentials.
+| Command | Purpose | Default safety behavior |
+|---|---|---|
+| `nad doctor [--json] [--profile]` | Full local diagnostic | Read-only; no benchmark or network request |
+| `nad doctor --auto-resolve` | Produces a review-only remediation plan | Does not install, modify, or execute fixes |
+| `nad doctor --ai-explain --allow-model-request --model NAME` | Requests a local Ollama explanation | Only a validated loopback endpoint is allowed |
+| `nad gpu info` / `nad gpu health` | NVIDIA GPU inventory and health | Read-only `nvidia-smi` calls |
+| `nad cuda check` | CUDA toolkit/runtime/environment evidence | Read-only |
+| `nad compatibility check` | GPU, driver, CUDA, PyTorch, TensorRT evidence | Read-only; does not invent a support matrix |
+| `nad security scan` | Environment and local permission baseline | Does not print detected secret values |
+| `nad security leak-check` | Redaction regression probes | Uses deterministic test values, not your credentials |
+| `nad mcp scan` | MCP configuration discovery and static review | Does not execute MCP server commands |
+| `nad skills scan` | Static `SKILL.md` risk review | Does not execute skills |
+| `nad skills verify` | SHA-256 digest and `SKILLCARD.yaml` validation | Local file read only |
+| `nad test-agent` | Static skill/MCP wiring preflight | No tools, models, or network calls |
+| `nad openshell diagnose` / `audit` | Local OpenShell indicators and heuristic audit | Does not modify OpenShell policy |
+| `nad nemotron check` / `nad nemoclaw check` | Local package/CLI detection | Heuristic, read-only |
+| `nad nemotron nim` | Optional local NIM readiness check | No request without explicit consent |
+| `nad cluster scan` | Optional Kubernetes health inventory | No cluster request without explicit consent |
+| `nad benchmark run` | Bounded performance measurement | Never automatic; confirmation required |
+| `nad report generate` | Terminal, JSON, Markdown, HTML, or readiness report | Writes a file only when requested or for default HTML output |
+| `nad interactive` | Guided Rich terminal console | Not a live dashboard; no benchmark |
 
-**Local NVIDIA NIM:** `nad nemotron nim` checks only the official local readiness path `/v1/health/ready`. It sends no inference request and contacts a service only after `--allow-local-request`; non-loopback endpoints and credential-bearing URLs are rejected.
+For all options, use `nad <command> --help`. Global options must appear before the subcommand, for example:
 
-**Heuristic security scanning:** The skills and MCP scanners use heuristic static analysis. They can produce false positives and false negatives. All findings require human review.
-
----
+```bash
+nad --config ./nad.toml doctor --json
+nad --no-color doctor
+nad --version
+```
 
 ## Configuration
 
-Create `.nvidia-agent-doctor.toml` in your project root:
+Configuration files are TOML and are validated strictly: malformed TOML, unknown keys, invalid values, or a missing explicit `--config` file return exit code `4`. NVIDIA Agent Doctor does not silently fall back to defaults after an invalid user configuration.
+
+Search order when `--config` is not provided:
+
+1. `./.nvidia-agent-doctor.toml`
+2. `~/.nvidia-agent-doctor.toml`
+3. Safe built-in defaults
+
+The checked-in [example configuration](.nvidia-agent-doctor.toml) is a starting point. The command settings currently read by the CLI are:
 
 ```toml
-[doctor]
-strict = false  # true = mark optional-not-found as WARNING
-
-[security]
-enabled = true
-
 [benchmark]
-enabled = false  # Never runs during 'nad doctor'
+# Used by `nad benchmark run` when the equivalent CLI option is omitted.
+max_memory_mb = 128     # 16–1024
+timeout_seconds = 15    # 1–300
 
 [mcp]
-enabled = true
-config_paths = ["~/.mcp/config.json"]
+# Included by `nad mcp scan` and `nad test-agent`.
+config_paths = ["./mcp.json"]
 
 [skills]
-enabled = true
+# Used when `nad skills scan` is called without --depth.
 scan_depth = 3
 ```
 
----
+Other documented schema sections are validated for forward compatibility but do not silently enable network access, benchmarks, or automatic remediation. Prefer explicit CLI consent flags for operations that could contact local services or a Kubernetes cluster.
 
-## GitHub Actions
+## Results, scores, and exit codes
 
-```yaml
-# .github/workflows/ai-health.yml
-name: AI Environment Health
+| Status | Meaning |
+|---|---|
+| `PASS` | The local check completed successfully. |
+| `WARNING` | A potential problem or review item was found. |
+| `ERROR` | A local check failed and needs action. |
+| `NOT_INSTALLED` | Optional software is absent; this is not automatically a failure. |
+| `NOT_APPLICABLE` | The check does not apply to this environment. |
+| `UNKNOWN` | The tool lacks sufficient evidence to determine a result. |
 
-on: [push, pull_request]
+The health score is deterministic and excludes `NOT_INSTALLED`, `NOT_APPLICABLE`, and `UNKNOWN` checks. It is a diagnostic summary, not a compliance, security, or performance certification.
 
-jobs:
-  diagnose:
-    # Pin to an immutable NVIDIA Agent Doctor release tag or commit SHA.
-    uses: karthikrshet/NVIDIA-Agent-Doctor/.github/workflows/nvidia-agent-doctor.yml@<commit-sha>
-    with:
-      skills_path: ./skills
+| Exit code | Meaning |
+|---|---|
+| `0` | No warnings or errors in the command’s report. |
+| `1` | One or more warnings. |
+| `2` | One or more diagnostic errors, including a failed benchmark measurement. |
+| `3` | A `HIGH` or `CRITICAL` security finding. |
+| `4` | Invalid or missing explicitly requested configuration. |
+
+## Security and privacy model
+
+- **Local-first:** normal diagnostics make no network request and send no telemetry.
+- **Redaction:** known API-key, token, password, private-key, credential URL, MCP argument, metadata, and handled-exception patterns are redacted before supported report rendering.
+- **Human review:** static skill and MCP findings describe potential risk requiring review. They do not label content as malicious and can produce false positives or false negatives.
+- **Explicit network consent:** NIM, Ollama explanation, and Kubernetes queries require dedicated consent flags and have restricted targets or fixed read-only commands.
+- **No automatic remediation:** `--fix` and `--auto-resolve` show suggestions only; they never install packages, alter drivers, change firewall rules, edit policies, or execute shell commands.
+
+Redaction is defense in depth, not a guarantee that every proprietary string is classified as a secret. Use `nad security leak-check` after upgrading and inspect generated reports before uploading or sharing them.
+
+## Real hardware validation
+
+The repository includes a sanitized record from an authorized Windows test machine:
+
+| Evidence | Verified result |
+|---|---|
+| GPU | NVIDIA GeForce RTX 3050 Laptop GPU |
+| Driver | 511.65 |
+| Driver-reported CUDA maximum | 11.6 |
+| PyTorch | 2.7.1+cu118 |
+| PyTorch CUDA | One device; compute capability 8.6; tiny CUDA compute passed |
+| Bounded benchmark | 16 MB GPU-only matrix multiplication measured successfully with a 15-second timeout |
+
+This validates the listed machine only. It is not evidence for every driver, GPU generation, operating system, CUDA version, or optional NVIDIA runtime. TensorRT, Triton, NIM, multi-GPU, OpenShell, and Kubernetes require their own authorized environments before they can be described as hardware-validated.
+
+Run the same evidence-based checks on an authorized GPU host:
+
+```bash
+pytest tests/hardware -m gpu -v --tb=short
+nad doctor --json --profile
+nad gpu info --json
+nad gpu health --json
+nad cuda check --json
+nad compatibility check --json
+nad benchmark run --gpu-only --yes --max-memory-mb 16 --timeout-seconds 15 --json
 ```
 
-**Note:** Standard GitHub-hosted runners don't have NVIDIA GPUs. GPU-specific checks will show `NOT_INSTALLED`, which is expected and correct. Use self-hosted NVIDIA GPU runners for full hardware diagnostics.
+See the [hardware validation runbook](docs/hardware-validation.md) and [sanitized fixture rules](tests/fixtures/recorded_hardware/README.md) before adding a fixture. Never commit hostnames, UUIDs, PCI identifiers, timestamps, credentials, model data, or dynamic workload output.
 
----
+## Scope and limitations
 
-## Limitations
+- This is an **alpha** project (`0.1.0`), not a production certification.
+- GPU checks require a functional `nvidia-smi`; absence is reported rather than simulated.
+- CUDA compatibility checks use limited documented driver-major lower bounds. Use official NVIDIA release notes and support matrices for exact deployment compatibility.
+- TensorRT, Triton, NeMo/Nemotron/NemoClaw, OpenShell, NIM, and Kubernetes coverage has the classification stated above; absence of a detection result is not proof of absence or incompatibility.
+- MCP analysis reads configuration; it does not observe live server behavior or establish effective OS/container capabilities.
+- Skill scanning is static heuristic analysis, not malware detection or sandboxing.
+- The HTML report is escaped and self-contained, but reports may still contain non-secret local environment details.
+- Benchmarks are minimal diagnostic measurements. Use NVIDIA Nsight, application profiling, and vendor tools for detailed performance work.
 
-- GPU diagnostics require `nvidia-smi` (NVIDIA driver installed)
-- OpenShell, NemoClaw, and Nemotron detection is **heuristic** — results vary by installation method
-- Skills scanner is **static analysis only** — cannot detect runtime behavior
-- MCP scanner analyzes configuration, not live server behavior
-- `nad test-agent` is a static preflight: it never starts an MCP server, invokes a skill, or calls a model
-- `nad skills verify` supports a detached SHA-256 digest and local SKILLCARD schema validation. A digest provides integrity, not publisher authentication; OpenSSF/OMS public-key verification is not currently implemented.
-- The readiness report is not a compliance certification or an assessment against a named framework
-- Benchmark results are hardware and workload specific — not directly comparable across systems
-- This tool does not replace NVIDIA Nsight, dedicated security scanners, or official NVIDIA monitoring tools
+## Development
 
-For evidence-based validation on an authorized GPU machine, follow the
-[hardware validation runbook](docs/hardware-validation.md). Hardware checks are
-blocked/skipped when `nvidia-smi` is unavailable; they are never simulated as a pass.
+```bash
+python -m pip install -e ".[dev]"
+pytest tests/ -v --tb=short -m "not gpu and not slow" --no-cov
+ruff check src/ tests/
+ruff format --check src/ tests/
+mypy src/nvidia_agent_doctor/
+```
 
----
+GPU tests are deliberately marked and run only on an authorized NVIDIA host:
 
-## Roadmap
+```bash
+pytest tests/hardware -m gpu -v --tb=short
+```
 
-| Version | Focus |
-|---------|-------|
-| v0.1 | CLI, GPU/CUDA/PyTorch/Docker/Security/JSON |
-| v0.2 | OpenShell, MCP scanner, Skills scanner |
-| v0.3 | Nemotron diagnostics, benchmark engine |
-| v0.4 | GitHub Action, HTML reports, plugin system |
-| v0.5 | Local dashboard, historical benchmarks |
-| v1.0 | Stable APIs, production quality, plugin ecosystem |
-
----
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md).
-
-We welcome:
-- Bug reports and fixes
-- New component integrations
-- Compatibility rules (with authoritative sources)
-- Documentation improvements
-- Test coverage improvements
-
----
+See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [CHANGELOG.md](CHANGELOG.md) for project process and disclosure guidance.
 
 ## License
 
-Apache 2.0 — see [LICENSE](LICENSE)
+Apache-2.0. See [LICENSE](LICENSE).
 
----
-
-## Disclaimer
-
-**NVIDIA Agent Doctor is an independent open-source project and is not affiliated with, endorsed by, or an official product of NVIDIA Corporation.**
-
-NVIDIA, CUDA, TensorRT, Triton, NeMo, Nemotron, and other NVIDIA product names are trademarks of NVIDIA Corporation. Use of these names in this project is for identification purposes only.
+NVIDIA, CUDA, TensorRT, Triton, NeMo, Nemotron, and related product names are trademarks of NVIDIA Corporation. Their use here is solely for identification.
