@@ -19,6 +19,8 @@ def run(
     json_output: bool = typer.Option(False, "--json"),
     gpu_only: bool = typer.Option(False, "--gpu-only", help="Only run GPU benchmark."),
     confirm: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt."),
+    max_memory_mb: int | None = typer.Option(None, "--max-memory-mb", min=16, max=1024),
+    timeout_seconds: int | None = typer.Option(None, "--timeout-seconds", min=1, max=300),
 ) -> None:
     """
     Run performance benchmarks.
@@ -36,8 +38,14 @@ def run(
             return
 
     from nvidia_agent_doctor.benchmark.runner import run_benchmarks
+    from nvidia_agent_doctor.cli.main import get_config
 
-    results = run_benchmarks(gpu_only=gpu_only)
+    config = get_config().benchmark
+    results = run_benchmarks(
+        gpu_only=gpu_only,
+        max_memory_mb=max_memory_mb or config.max_memory_mb,
+        timeout_seconds=timeout_seconds or config.timeout_seconds,
+    )
 
     if json_output:
         import json

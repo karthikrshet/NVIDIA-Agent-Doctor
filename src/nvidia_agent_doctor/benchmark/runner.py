@@ -3,27 +3,37 @@
 from __future__ import annotations
 
 import time
+from math import isqrt
 from typing import Any
 
+DEFAULT_MAX_MEMORY_MB = 128
+DEFAULT_TIMEOUT_SECONDS = 15
 
-def run_benchmarks(gpu_only: bool = False) -> dict[str, Any]:
+
+def run_benchmarks(
+    gpu_only: bool = False,
+    max_memory_mb: int = DEFAULT_MAX_MEMORY_MB,
+    timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS,
+) -> dict[str, Any]:
     """
     Run available benchmarks. Returns results dict.
     All benchmarks are lightweight and opt-in.
     """
+    if not 16 <= max_memory_mb <= 1024 or not 1 <= timeout_seconds <= 300:
+        raise ValueError("Invalid benchmark resource limits")
     results: dict[str, Any] = {}
 
     # GPU benchmark
-    results["gpu_basic"] = _benchmark_gpu()
+    results["gpu_basic"] = _benchmark_gpu(max_memory_mb, timeout_seconds)
 
     if not gpu_only:
-        results["system_memory"] = _benchmark_system_memory()
-        results["cuda_basic"] = _benchmark_cuda()
+        results["system_memory"] = _benchmark_system_memory(max_memory_mb, timeout_seconds)
+        results["cuda_basic"] = _benchmark_cuda(max_memory_mb, timeout_seconds)
 
     return results
 
 
-def _benchmark_gpu() -> dict[str, Any]:
+def _benchmark_gpu(max_memory_mb: int, timeout_seconds: int) -> dict[str, Any]:
     """Basic GPU compute benchmark using PyTorch if available."""
     try:
         import torch
@@ -31,37 +41,39 @@ def _benchmark_gpu() -> dict[str, Any]:
         if not torch.cuda.is_available():
             return {"skipped": True, "reason": "CUDA not available"}
 
-        # Warm up
-        size = 2048
+        # Inputs and output are bounded by the configured memory budget.
+        size = max(128, isqrt((max_memory_mb * 1024 * 1024) // 12))
+        deadline = time.monotonic() + timeout_seconds
         a = torch.randn(size, size, device="cuda")
         b = torch.randn(size, size, device="cuda")
-        torch.cuda.synchronize()
-
-        # Benchmark matrix multiply (3 runs)
-        times: list[float] = []
-        for _ in range(3):
-            start = time.perf_counter()
-            _ = torch.mm(a, b)
+        try:
             torch.cuda.synchronize()
-            times.append(time.perf_counter() - start)
-
-        avg_ms = round(sum(times) / len(times) * 1000, 2)
-        flops = 2 * size**3  # FLOPs for matmul
-        tflops = round(flops / (avg_ms / 1000) / 1e12, 3)
-
-        return {
-            "operation": f"matmul {size}x{size}",
-            "avg_latency_ms": avg_ms,
-            "tflops": tflops,
-            "note": "Measured result on this hardware at time of benchmark.",
-        }
+            times: list[float] = []
+            for _ in range(3):
+                if time.monotonic() >= deadline:
+                    raise TimeoutError("GPU benchmark exceeded timeout")
+                start = time.perf_counter()
+                output = torch.mm(a, b)
+                torch.cuda.synchronize()
+                del output
+                times.append(time.perf_counter() - start)
+            avg_ms = round(sum(times) / len(times) * 1000, 2)
+            return {
+                "operation": f"matmul {size}x{size}",
+                "avg_latency_ms": avg_ms,
+                "tflops": round((2 * size**3) / (avg_ms / 1000) / 1e12, 3),
+                "max_memory_mb": max_memory_mb,
+            }
+        finally:
+            del a, b
+            torch.cuda.empty_cache()
     except ImportError:
         return {"skipped": True, "reason": "PyTorch not installed"}
     except Exception as e:
         return {"error": str(e)}
 
 
-def _benchmark_cuda() -> dict[str, Any]:
+def _benchmark_cuda(max_memory_mb: int, timeout_seconds: int) -> dict[str, Any]:
     """Basic CUDA memory bandwidth benchmark."""
     try:
         import torch
@@ -69,50 +81,52 @@ def _benchmark_cuda() -> dict[str, Any]:
         if not torch.cuda.is_available():
             return {"skipped": True, "reason": "CUDA not available"}
 
-        # Allocate 512MB tensor
-        size = 128 * 1024 * 1024  # 128M float32 = 512MB
+        size = (max_memory_mb * 1024 * 1024) // 8
+        deadline = time.monotonic() + timeout_seconds
         src = torch.rand(size, device="cuda")
-        torch.cuda.synchronize()
-
-        times: list[float] = []
-        for _ in range(3):
-            start = time.perf_counter()
-            dst = src.clone()
-            torch.cuda.synchronize()
-            times.append(time.perf_counter() - start)
-        del src, dst
-
-        avg_s = sum(times) / len(times)
-        bytes_copied = size * 4  # float32 = 4 bytes
-        bandwidth_gb_s = round((bytes_copied / avg_s) / 1e9, 2)
-
-        return {
-            "operation": "CUDA memory copy (512MB)",
-            "avg_latency_ms": round(avg_s * 1000, 2),
-            "bandwidth_gb_s": bandwidth_gb_s,
-            "note": "Measured result on this hardware at time of benchmark.",
-        }
+        try:
+            times: list[float] = []
+            for _ in range(3):
+                if time.monotonic() >= deadline:
+                    raise TimeoutError("CUDA copy benchmark exceeded timeout")
+                start = time.perf_counter()
+                dst = src.clone()
+                torch.cuda.synchronize()
+                del dst
+                times.append(time.perf_counter() - start)
+            avg_s = sum(times) / len(times)
+            return {
+                "operation": f"CUDA memory copy ({max_memory_mb // 2}MB)",
+                "avg_latency_ms": round(avg_s * 1000, 2),
+                "bandwidth_gb_s": round((size * 4 / avg_s) / 1e9, 2),
+                "max_memory_mb": max_memory_mb,
+            }
+        finally:
+            del src
+            torch.cuda.empty_cache()
     except ImportError:
         return {"skipped": True, "reason": "PyTorch not installed"}
     except Exception as e:
         return {"error": str(e)}
 
 
-def _benchmark_system_memory() -> dict[str, Any]:
+def _benchmark_system_memory(max_memory_mb: int, timeout_seconds: int) -> dict[str, Any]:
     """Basic system memory bandwidth benchmark."""
     try:
         import array
 
-        size = 64 * 1024 * 1024  # 64M integers = 256MB
+        size = min(max_memory_mb, 32) * 1024 * 1024 // 4
 
-        a = array.array("f", [1.0] * size)
+        a = array.array("f", [1.0]) * size
         start = time.perf_counter()
         _copy = array.array("f", a)  # copy
         elapsed = time.perf_counter() - start
+        if elapsed > timeout_seconds:
+            raise TimeoutError("System memory benchmark exceeded timeout")
 
         bandwidth_gb_s = round((size * 4) / elapsed / 1e9, 2)
         return {
-            "operation": "System memory copy (256MB)",
+            "operation": f"System memory copy ({size * 4 // (1024 * 1024)}MB)",
             "avg_latency_ms": round(elapsed * 1000, 2),
             "bandwidth_gb_s": bandwidth_gb_s,
             "note": "Measured result at time of benchmark.",
