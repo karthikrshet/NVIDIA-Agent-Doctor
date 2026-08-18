@@ -23,6 +23,7 @@ _CREDENTIAL_PATTERN = re.compile(
     re.IGNORECASE,
 )
 _SCRIPT_PATTERN = re.compile(r"(?:run|execute|call)\s+([\w/.-]+\.(?:py|sh|js|ts|rb))")
+_MAX_SKILL_BYTES = 1_048_576
 
 
 def parse_skill_file(path: Path) -> SkillInfo | None:
@@ -31,6 +32,11 @@ def parse_skill_file(path: Path) -> SkillInfo | None:
     Returns None if the file cannot be read or parsed.
     """
     try:
+        # Skills are untrusted input.  Do not follow a link out of the scan
+        # tree and keep one oversized file from turning a diagnostic run into
+        # an unbounded memory read.
+        if path.is_symlink() or not path.is_file() or path.stat().st_size > _MAX_SKILL_BYTES:
+            return None
         content = path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return None

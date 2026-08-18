@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from nvidia_agent_doctor.core.models import MCPServerInfo
-from nvidia_agent_doctor.security.credentials import redact_secrets
+from nvidia_agent_doctor.security.credentials import REDACTED, redact_data, redact_secrets
 
 _DEFAULT_MCP_PATHS = [
     Path.home() / ".mcp" / "config.json",
@@ -18,6 +18,8 @@ _DEFAULT_MCP_PATHS = [
     Path(".mcp") / "config.json",
     Path(os.environ.get("MCP_CONFIG_PATH", "__nonexistent__")),
 ]
+_MAX_MCP_CONFIG_BYTES = 1_048_576
+_SENSITIVE_ARGUMENTS = {"--api-key", "--password", "--secret", "--token", "-t"}
 
 
 def discover_mcp_servers(
@@ -37,8 +39,13 @@ def discover_mcp_servers(
 
     for path in search_paths:
         try:
-            resolved = path.resolve()
-            if resolved in seen or not path.exists():
+            # Configuration is untrusted input.  A scanner should not follow
+            # a symlink supplied through a config path or read arbitrarily
+            # large files during a normal diagnostic invocation.
+            if path.is_symlink() or not path.is_file() or path.stat().st_size > _MAX_MCP_CONFIG_BYTES:
+                continue
+            resolved = path.resolve(strict=True)
+            if resolved in seen:
                 continue
             seen.add(resolved)
             found = _parse_mcp_config(path)
@@ -60,7 +67,7 @@ def _parse_mcp_config(path: Path) -> list[MCPServerInfo]:
     servers: list[MCPServerInfo] = []
 
     # Standard MCP format: {"mcpServers": {"name": {...}}}
-    mcp_servers = data.get("mcpServers", {})
+    mcp_servers = data.get("mcpServers", {}) if isinstance(data, dict) else data
     if isinstance(mcp_servers, dict):
         for name, cfg in mcp_servers.items():
             if not isinstance(cfg, dict):
@@ -86,12 +93,33 @@ def _parse_server_entry(name: str, cfg: dict[str, Any], config_path: str) -> MCP
     else:
         redacted_env = {}
 
+    raw_args = cfg.get("args", [])
+    args = raw_args if isinstance(raw_args, list) else []
+    url = cfg.get("url")
     return MCPServerInfo(
         name=name,
         transport=cfg.get("transport"),
         command=cfg.get("command"),
-        args=cfg.get("args", []),
+        args=_redact_args(args),
         env_vars=redacted_env,
-        url=cfg.get("url"),
+        url=str(redact_data(url, key="url")) if url is not None else None,
         config_path=config_path,
     )
+
+
+def _redact_args(args: list[Any]) -> list[str]:
+    """Redact both ``--token=value`` and ``--token value`` forms."""
+    redacted: list[str] = []
+    redact_next = False
+    for argument in args:
+        text = str(argument)
+        if redact_next:
+            redacted.append(REDACTED)
+            redact_next = False
+            continue
+        if text.lower() in _SENSITIVE_ARGUMENTS:
+            redacted.append(text)
+            redact_next = True
+            continue
+        redacted.append(str(redact_data(text, key="args")))
+    return redacted

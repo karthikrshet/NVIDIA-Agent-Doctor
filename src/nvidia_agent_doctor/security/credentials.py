@@ -25,6 +25,14 @@ _SECRET_VALUE_PATTERNS = [
     re.compile(r"^[A-Za-z0-9+/]{40,}={0,2}$"),  # Base64-encoded secrets
     re.compile(r"^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*$"),  # JWT
 ]
+_INLINE_SECRET_VALUE_PATTERNS = [
+    re.compile(r"\bsk-[A-Za-z0-9]{20,}\b"),
+    re.compile(r"\bnvapi-[A-Za-z0-9_-]{20,}\b"),
+    re.compile(r"\bhf_[A-Za-z0-9]{20,}\b"),
+    re.compile(r"\bghp_[A-Za-z0-9]{36}\b"),
+    re.compile(r"\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*\b"),
+]
+_UPPERCASE_ASSIGNMENT = re.compile(r"\b([A-Z][A-Z0-9_-]*)\s*([=:])\s*([^\s,;]+)")
 
 REDACTED = "********"
 
@@ -34,12 +42,17 @@ def redact_text(value: str) -> str:
     redacted = value
     for pattern in _SECRET_VALUE_PATTERNS:
         redacted = pattern.sub(REDACTED, redacted)
-    return re.sub(
-        r"(?i)\b([A-Z][A-Z0-9_-]*(?:API[_-]?KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|AUTH)[A-Z0-9_-]*)"
-        r"\s*([=:])\s*([^\s,;]+)",
-        lambda match: f"{match.group(1)}{match.group(2)}{REDACTED}",
-        redacted,
-    )
+    for pattern in _INLINE_SECRET_VALUE_PATTERNS:
+        redacted = pattern.sub(REDACTED, redacted)
+    return _UPPERCASE_ASSIGNMENT.sub(_redact_assignment, redacted)
+
+
+def _redact_assignment(match: re.Match[str]) -> str:
+    """Redact an uppercase assignment only when its key is sensitive."""
+    key, separator, value = match.groups()
+    if _SECRET_KEY_PATTERNS.search(key):
+        return f"{key}{separator}{REDACTED}"
+    return match.group(0)
 
 
 def _redact_url(value: str) -> str:

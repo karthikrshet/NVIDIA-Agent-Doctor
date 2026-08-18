@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import typer
 from rich import box
 from rich.console import Console
@@ -60,3 +62,22 @@ def scan(
         console.print(table)
 
     console.print("\n[dim]Note: Security scan is heuristic. Always verify findings manually.[/dim]")
+
+
+@app.command("leak-check")
+def leak_check(
+    json_output: bool = typer.Option(False, "--json"),
+) -> None:
+    """Run local redaction regression probes without using real credentials."""
+    from nvidia_agent_doctor.security.leak_check import run_leak_check
+
+    result = run_leak_check()
+    if json_output:
+        typer.echo(json.dumps(result, indent=2))
+    else:
+        console = Console()
+        for check in result["checks"]:
+            status = "PASS" if check["passed"] else "FAIL"
+            console.print(f"{status}: {check['boundary']}")
+    if not result["passed"]:
+        raise typer.Exit(code=3)

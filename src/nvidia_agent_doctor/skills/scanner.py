@@ -172,6 +172,8 @@ def scan_skills_directory(
     pattern_files = sorted(set(pattern_files))
 
     for skill_file in pattern_files:
+        if skill_file.is_symlink():
+            continue
         # Check depth
         try:
             relative = skill_file.relative_to(directory)
