@@ -11,6 +11,7 @@ from defusedxml.common import DefusedXmlException
 from nvidia_agent_doctor.collectors.gpu import (
     _parse_nvidia_smi_xml,
     collect_gpu_info,
+    get_nvidia_smi_version,
     nvidia_smi_available,
 )
 
@@ -51,9 +52,20 @@ class TestNvidiaSmiAvailable:
     def test_available_when_command_succeeds(self) -> None:
         mock_result = MagicMock()
         mock_result.returncode = 0
+        mock_result.stdout = "GPU 0: NVIDIA Test GPU (UUID: GPU-test)"
+        with patch("nvidia_agent_doctor.collectors.gpu.shutil.which", return_value="nvidia-smi"):
+            with patch("subprocess.run", return_value=mock_result) as run:
+                assert nvidia_smi_available() is True
+
+        run.assert_called_once_with(
+            ["nvidia-smi", "-L"], capture_output=True, text=True, timeout=10, check=False
+        )
+
+    def test_not_available_when_list_has_no_gpu_output(self) -> None:
+        mock_result = MagicMock(returncode=0, stdout="")
         with patch("nvidia_agent_doctor.collectors.gpu.shutil.which", return_value="nvidia-smi"):
             with patch("subprocess.run", return_value=mock_result):
-                assert nvidia_smi_available() is True
+                assert nvidia_smi_available() is False
 
     def test_not_available_when_command_fails(self) -> None:
         with patch("nvidia_agent_doctor.collectors.gpu.shutil.which", return_value="nvidia-smi"):
@@ -66,6 +78,24 @@ class TestNvidiaSmiAvailable:
                 assert nvidia_smi_available() is False
 
         run.assert_not_called()
+
+
+def test_version_falls_back_to_default_summary_for_older_drivers() -> None:
+    unsupported_version = MagicMock(returncode=2, stdout="", stderr="invalid option")
+    summary = MagicMock(
+        returncode=0,
+        stdout="NVIDIA-SMI 511.65 Driver Version: 511.65 CUDA Version: 11.6\n",
+    )
+    with patch(
+        "nvidia_agent_doctor.collectors.gpu.subprocess.run",
+        side_effect=[unsupported_version, summary],
+    ) as run:
+        assert (
+            get_nvidia_smi_version()
+            == "NVIDIA-SMI 511.65 Driver Version: 511.65 CUDA Version: 11.6"
+        )
+
+    assert run.call_count == 2
 
 
 class TestCollectGpuInfo:

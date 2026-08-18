@@ -17,6 +17,10 @@ PyTorch data. It skips with `GPU VALIDATION BLOCKED` when `nvidia-smi` is not
 available; a skip is not a passing GPU validation result. TensorRT and Triton
 are recorded as optional runtime evidence and are never simulated.
 
+The availability probe uses NVIDIA's documented `nvidia-smi -L` GPU-listing
+operation. This avoids treating older drivers that reject `nvidia-smi --version`
+as unavailable.
+
 ## Compatibility evidence
 
 The driver lower-bound check is limited to CUDA major-family minor-version

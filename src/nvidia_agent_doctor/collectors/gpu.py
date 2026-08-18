@@ -28,14 +28,20 @@ def collect_gpu_info() -> list[GPUInfo] | None:
 
 
 def nvidia_smi_available() -> bool:
-    """Check if nvidia-smi is accessible."""
-    if shutil.which("nvidia-smi") is None:
+    """Check whether nvidia-smi can list at least one usable GPU.
+
+    ``--version`` is not accepted by some older Windows driver releases even
+    when ordinary, XML, and query invocations work. NVIDIA documents ``-L`` as
+    the portable GPU-listing operation, so it is a better capability probe.
+    """
+    smi_path = shutil.which("nvidia-smi")
+    if smi_path is None:
         return False
     try:
         result = subprocess.run(
-            ["nvidia-smi", "--version"], capture_output=True, text=True, timeout=10
+            [smi_path, "-L"], capture_output=True, text=True, timeout=10, check=False
         )
-        return result.returncode == 0
+        return result.returncode == 0 and bool(result.stdout.strip())
     except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
         return False
 
@@ -216,16 +222,22 @@ def _safe_int(value: str) -> int | None:
 
 
 def get_nvidia_smi_version() -> str | None:
-    """Return nvidia-smi version string or None."""
+    """Return nvidia-smi version string or None.
+
+    Older drivers can reject the otherwise documented ``--version`` flag. In
+    that case, the default read-only summary still contains the version.
+    """
     try:
         result = subprocess.run(
             ["nvidia-smi", "--version"], capture_output=True, text=True, timeout=10
         )
+        if result.returncode != 0:
+            result = subprocess.run(["nvidia-smi"], capture_output=True, text=True, timeout=10)
         if result.returncode == 0:
             for line in result.stdout.splitlines():
                 if "NVIDIA-SMI" in line or "version" in line.lower():
                     return line.strip()
             return result.stdout.strip().splitlines()[0] if result.stdout.strip() else None
         return None
-    except Exception:
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
         return None

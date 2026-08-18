@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
+from nvidia_agent_doctor.analyzers.environment import analyze_cuda
 from nvidia_agent_doctor.collectors.cuda import _check_compatibility, collect_cuda_info
+from nvidia_agent_doctor.core.models import CUDAInfo
+from nvidia_agent_doctor.core.severity import Severity
 
 
 def test_cuda_12_requires_documented_minimum_driver() -> None:
@@ -35,3 +38,20 @@ def test_cuda_collector_does_not_launch_nvidia_smi_when_preflight_failed() -> No
             collect_cuda_info(nvidia_smi_available=False)
 
     run.assert_not_called()
+
+
+def test_driver_only_cuda_runtime_does_not_require_toolkit_environment_variables() -> None:
+    section = analyze_cuda(CUDAInfo(runtime_version="11.6", driver_version="511.65"))
+    env_check = next(check for check in section.checks if check.name == "cuda_env_vars")
+
+    assert env_check.severity is Severity.NOT_APPLICABLE
+    assert env_check.fix_command is None
+
+
+def test_installed_toolkit_without_environment_variables_never_suggests_a_guessed_command() -> None:
+    section = analyze_cuda(CUDAInfo(toolkit_version="12.4", nvcc_available=True))
+    env_check = next(check for check in section.checks if check.name == "cuda_env_vars")
+
+    assert env_check.severity is Severity.WARNING
+    assert env_check.fix_command is None
+    assert "/usr/local/cuda" not in (env_check.recommendation or "")

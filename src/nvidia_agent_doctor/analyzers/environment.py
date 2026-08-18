@@ -246,15 +246,25 @@ def analyze_cuda(cuda_info: CUDAInfo | None = None) -> SectionResult:
 
     # Environment variables
     if not info.cuda_home and not info.cuda_path:
+        if not info.nvcc_available and info.toolkit_version is None:
+            section.checks.append(
+                CheckResult(
+                    name="cuda_env_vars",
+                    severity=Severity.NOT_APPLICABLE,
+                    message="CUDA toolkit is not installed; CUDA_HOME/CUDA_PATH are not required",
+                    detail="The detected NVIDIA driver/runtime can operate without a local CUDA toolkit.",
+                )
+            )
+            return section
         section.checks.append(
             CheckResult(
                 name="cuda_env_vars",
                 severity=Severity.WARNING,
                 message="CUDA_HOME and CUDA_PATH are not set",
                 recommendation=(
-                    "Set CUDA_HOME to your CUDA installation directory (e.g., /usr/local/cuda)."
+                    "Set the CUDA environment variable appropriate for your operating system "
+                    "only after confirming the installed toolkit directory."
                 ),
-                fix_command='export CUDA_HOME="/usr/local/cuda"',
             )
         )
     else:
