@@ -34,7 +34,7 @@ The default `nad doctor` command is read-only. It checks the local operating sys
 | PyTorch | Imports the package when installed, checks CUDA availability/devices, and performs one tiny GPU dot product. | Real local integration |
 | Docker | Detects Docker and NVIDIA container-runtime indicators. | Local detection |
 | TensorRT | Checks whether the local Python package imports and whether basic builder/runtime indicators are present. | Partial local detection |
-| Triton Inference Server | Checks binary, process, and container indicators. It does not send inference requests. | Heuristic detection |
+| Triton Inference Server | Checks binary, process, and container indicators; optionally calls the documented loopback readiness endpoint after explicit consent. It never sends inference. | Heuristic detection plus limited local integration |
 | NeMo, Nemotron, NemoClaw | Checks package, CLI, and configured local indicators. | Heuristic detection |
 | NVIDIA NIM | Optionally sends a read-only request to a validated loopback readiness endpoint; model-list discovery is also local and opt-in. | Limited local integration |
 | OpenShell | Checks documented local CLI/config/process indicators and reports isolation-policy indicators without changing policy. | Heuristic detection |
@@ -171,6 +171,18 @@ nad nemotron nim --allow-local-request --models --json
 
 Only loopback readiness and model-list endpoints are accepted. Remote URLs, credential-bearing URLs, query strings, and fragments are rejected.
 
+### Verify a local Triton server is ready
+
+```bash
+# Default: inspect local indicators only; no HTTP request
+nad triton check --json
+
+# One GET request to the validated loopback /v2/health/ready endpoint
+nad triton check --allow-local-request --endpoint http://127.0.0.1:8000 --json
+```
+
+The readiness probe uses Triton's documented [`/v2/health/ready` endpoint](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/getting_started/quick_deployment_by_backend.html). It accepts only an `http(s)` loopback base URL, has a 30-second maximum timeout, does not fetch model metadata, and never sends inference input. A requested but unavailable or non-ready local server returns exit code `1`.
+
 ### Review a Kubernetes context deliberately
 
 ```bash
@@ -194,7 +206,7 @@ The cluster command does not edit workloads, policies, or contexts. Confirm that
 | `nad cuda check` | CUDA toolkit/runtime/environment evidence | Read-only |
 | `nad compatibility check` | GPU, driver, CUDA, PyTorch, TensorRT evidence | Read-only; does not invent a support matrix |
 | `nad tensorrt check` | TensorRT Python binding, runtime, and builder-object probe | Does not build an engine or claim CUDA support-matrix compatibility |
-| `nad triton check` | Local Triton binary, client, process, and container indicators | Does not contact an endpoint, load a model, or run inference |
+| `nad triton check` | Local Triton binary/client/process indicators and optional readiness | One local GET only with `--allow-local-request`; never loads a model or runs inference |
 | `nad security scan` | Environment and local permission baseline | Does not print detected secret values |
 | `nad security leak-check` | Redaction regression probes | Uses deterministic test values, not your credentials |
 | `nad mcp scan` | MCP configuration discovery and static review | Does not execute MCP server commands |
@@ -272,7 +284,7 @@ The health score is deterministic and excludes `NOT_INSTALLED`, `NOT_APPLICABLE`
 - **Local-first:** normal diagnostics make no network request and send no telemetry.
 - **Redaction:** known API-key, token, password, private-key, credential URL, MCP argument, metadata, and handled-exception patterns are redacted before supported report rendering.
 - **Human review:** static skill and MCP findings describe potential risk requiring review. They do not label content as malicious and can produce false positives or false negatives.
-- **Explicit network consent:** NIM, Ollama explanation, and Kubernetes queries require dedicated consent flags and have restricted targets or fixed read-only commands.
+- **Explicit network consent:** NIM, Triton readiness, Ollama explanation, and Kubernetes queries require dedicated consent flags and have restricted targets or fixed read-only commands.
 - **No automatic remediation:** `--fix` and `--auto-resolve` show suggestions only; they never install packages, alter drivers, change firewall rules, edit policies, or execute shell commands.
 
 Redaction is defense in depth, not a guarantee that every proprietary string is classified as a secret. Use `nad security leak-check` after upgrading and inspect generated reports before uploading or sharing them.

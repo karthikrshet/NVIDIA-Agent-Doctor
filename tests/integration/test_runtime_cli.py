@@ -50,7 +50,27 @@ def test_triton_check_json_reports_detection_without_contacting_a_server() -> No
         "error": None,
     }
     with patch("nvidia_agent_doctor.integrations.triton.check_triton", return_value=probe):
-        result = runner.invoke(app, ["triton", "check", "--json"])
+        with patch(
+            "nvidia_agent_doctor.integrations.triton.check_local_triton_readiness",
+            return_value={"status": "request_not_allowed", "ready": False},
+        ):
+            result = runner.invoke(app, ["triton", "check", "--json"])
 
     assert result.exit_code == 0
-    assert json.loads(result.stdout)["client_available"] is True
+    output = json.loads(result.stdout)
+    assert output["client_available"] is True
+    assert output["readiness"]["status"] == "request_not_allowed"
+
+
+def test_triton_check_returns_warning_for_an_explicit_unavailable_readiness_probe() -> None:
+    with patch(
+        "nvidia_agent_doctor.integrations.triton.check_triton",
+        return_value={"installed": True, "client_available": False},
+    ):
+        with patch(
+            "nvidia_agent_doctor.integrations.triton.check_local_triton_readiness",
+            return_value={"status": "unavailable", "ready": False},
+        ):
+            result = runner.invoke(app, ["triton", "check", "--allow-local-request", "--json"])
+
+    assert result.exit_code == 1

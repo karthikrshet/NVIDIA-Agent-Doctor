@@ -4,7 +4,15 @@ from __future__ import annotations
 
 import shutil
 import subprocess
-from typing import Any
+from typing import Any, cast
+from urllib.error import HTTPError
+from urllib.parse import urlsplit, urlunsplit
+from urllib.request import Request, urlopen
+
+from nvidia_agent_doctor.security.credentials import redact_data, redact_text
+
+_LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "::1"}
+_MAX_READINESS_TIMEOUT_SECONDS = 30
 
 
 def check_triton() -> dict[str, Any]:
@@ -48,6 +56,88 @@ def check_triton() -> dict[str, Any]:
             result["source"] = "container"
 
     return result
+
+
+def check_local_triton_readiness(
+    endpoint: str,
+    allow_request: bool = False,
+    timeout_seconds: int = 5,
+) -> dict[str, Any]:
+    """Query Triton's loopback ready endpoint only after explicit consent.
+
+    The endpoint is based on NVIDIA Triton's documented ``/v2/health/ready``
+    route. This makes no inference, metadata, model, or statistics request.
+    """
+    ready_endpoint = _readiness_url(endpoint)
+    if ready_endpoint is None:
+        return {
+            "status": "invalid_endpoint",
+            "ready": False,
+            "recommendation": "Use an http(s) loopback base endpoint, such as http://127.0.0.1:8000.",
+        }
+    if not 1 <= timeout_seconds <= _MAX_READINESS_TIMEOUT_SECONDS:
+        return {
+            "status": "invalid_timeout",
+            "ready": False,
+            "recommendation": f"Use a timeout between 1 and {_MAX_READINESS_TIMEOUT_SECONDS} seconds.",
+        }
+    if not allow_request:
+        return {
+            "status": "request_not_allowed",
+            "ready": False,
+            "recommendation": "Re-run with --allow-local-request to query the local Triton readiness endpoint.",
+        }
+
+    request = Request(ready_endpoint, method="GET")  # noqa: S310 - validated loopback URL
+    try:
+        with urlopen(request, timeout=timeout_seconds) as response:  # noqa: S310 - validated loopback URL
+            status_code = getattr(response, "status", 200)
+        result = {
+            "status": "ready" if status_code == 200 else "not_ready",
+            "ready": status_code == 200,
+            "endpoint": ready_endpoint,
+            "http_status": status_code,
+        }
+    except HTTPError as exc:
+        try:
+            exc.close()
+        except OSError:
+            pass
+        result = {
+            "status": "not_ready",
+            "ready": False,
+            "endpoint": ready_endpoint,
+            "http_status": exc.code,
+        }
+    except (OSError, TimeoutError) as exc:
+        result = {
+            "status": "unavailable",
+            "ready": False,
+            "endpoint": ready_endpoint,
+            "error": redact_text(str(exc)),
+        }
+    return cast(dict[str, Any], redact_data(result))
+
+
+def _readiness_url(endpoint: str) -> str | None:
+    """Validate a base endpoint and append Triton's ready path if needed."""
+    try:
+        parsed = urlsplit(endpoint)
+    except ValueError:
+        return None
+    if parsed.scheme not in {"http", "https"} or parsed.hostname not in _LOOPBACK_HOSTS:
+        return None
+    if parsed.username or parsed.password or parsed.query or parsed.fragment:
+        return None
+    base_path = parsed.path.rstrip("/")
+    path = (
+        base_path
+        if base_path.endswith("/v2/health/ready")
+        else f"{base_path}/v2/health/ready"
+        if base_path
+        else "/v2/health/ready"
+    )
+    return urlunsplit((parsed.scheme, parsed.netloc, path, "", ""))
 
 
 def _get_tritonserver_version(binary: str) -> str | None:

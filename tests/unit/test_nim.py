@@ -21,6 +21,12 @@ def test_nim_readiness_rejects_non_loopback_endpoint() -> None:
     assert result["status"] == "invalid_endpoint"
 
 
+def test_nim_readiness_rejects_malformed_url_without_raising() -> None:
+    result = check_local_nim("http://[::1", allow_request=True)
+
+    assert result["status"] == "invalid_endpoint"
+
+
 def test_nim_readiness_parses_ready_response() -> None:
     response = MagicMock()
     response.read.return_value = b'{"status": "ready"}'

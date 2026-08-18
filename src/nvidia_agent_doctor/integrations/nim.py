@@ -56,7 +56,10 @@ def check_local_nim(
 
 
 def _readiness_url(endpoint: str) -> str | None:
-    parsed = urlsplit(endpoint)
+    try:
+        parsed = urlsplit(endpoint)
+    except ValueError:
+        return None
     if parsed.scheme not in {"http", "https"} or parsed.hostname not in _LOOPBACK_HOSTS:
         return None
     if parsed.username or parsed.password or parsed.query or parsed.fragment:
