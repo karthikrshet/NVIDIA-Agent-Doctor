@@ -51,8 +51,14 @@ class SectionResult(BaseModel):
         """Worst severity across all checks."""
         if not self.checks:
             return Severity.UNKNOWN
-        priority = [Severity.ERROR, Severity.WARNING, Severity.UNKNOWN, Severity.PASS,
-                    Severity.NOT_APPLICABLE, Severity.NOT_INSTALLED]
+        priority = [
+            Severity.ERROR,
+            Severity.WARNING,
+            Severity.UNKNOWN,
+            Severity.PASS,
+            Severity.NOT_APPLICABLE,
+            Severity.NOT_INSTALLED,
+        ]
         for sev in priority:
             if any(c.severity == sev for c in self.checks):
                 return sev
@@ -122,9 +128,8 @@ class DiagnosticReport(BaseModel):
 
     @property
     def total_security_findings(self) -> int:
-        return (
-            len(self.security_findings)
-            + sum(len(s.security_findings) for s in self.sections.values())
+        return len(self.security_findings) + sum(
+            len(s.security_findings) for s in self.sections.values()
         )
 
     @property
@@ -147,7 +152,8 @@ class DiagnosticReport(BaseModel):
         if self.total_errors > 0:
             return 2
         high_security = [
-            f for f in self.security_findings
+            f
+            for f in self.security_findings
             if f.severity in (SecuritySeverity.HIGH, SecuritySeverity.CRITICAL)
         ]
         if high_security:

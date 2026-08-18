@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 
-class Severity(str, Enum):
+class Severity(StrEnum):
     """Diagnostic severity levels for check results."""
 
     PASS = "PASS"
@@ -70,7 +70,7 @@ class Severity(str, Enum):
         return colors[self]
 
 
-class SecuritySeverity(str, Enum):
+class SecuritySeverity(StrEnum):
     """Security finding severity levels."""
 
     INFO = "INFO"

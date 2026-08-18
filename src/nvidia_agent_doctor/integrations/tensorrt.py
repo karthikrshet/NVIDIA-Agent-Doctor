@@ -21,7 +21,8 @@ def check_tensorrt() -> dict[str, Any]:
     }
 
     try:
-        import tensorrt as trt  # type: ignore[import]
+        import tensorrt as trt
+
         result["installed"] = True
         result["python_bindings"] = True
         result["version"] = getattr(trt, "__version__", None)
@@ -49,6 +50,7 @@ def check_tensorrt() -> dict[str, Any]:
         # CUDA compatibility check via torch if available
         try:
             import torch
+
             if torch.cuda.is_available():
                 result["cuda_compatible"] = True
         except ImportError:

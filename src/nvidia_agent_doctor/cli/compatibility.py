@@ -20,9 +20,9 @@ def check(
 ) -> None:
     """Check cross-component compatibility (GPU, Driver, CUDA, PyTorch, TensorRT)."""
     from nvidia_agent_doctor.analyzers.compatibility import analyze_compatibility
-    from nvidia_agent_doctor.reports.terminal import _render_section
-    from nvidia_agent_doctor.reports.json_report import render_json
     from nvidia_agent_doctor.core.result import DiagnosticReport
+    from nvidia_agent_doctor.reports.json_report import render_json
+    from nvidia_agent_doctor.reports.terminal import _render_section
 
     console = Console()
     section = analyze_compatibility()

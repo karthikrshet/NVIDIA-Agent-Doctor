@@ -19,15 +19,17 @@ def check(
     json_output: bool = typer.Option(False, "--json"),
 ) -> None:
     """Check NemoClaw installation."""
-    from nvidia_agent_doctor.integrations.nemotron import detect_nemoclaw
-    from rich.table import Table
     from rich import box
+    from rich.table import Table
+
+    from nvidia_agent_doctor.integrations.nemotron import detect_nemoclaw
 
     console = Console()
     claw = detect_nemoclaw()
 
     if json_output:
         import json
+
         typer.echo(json.dumps(claw, indent=2, default=str))
         return
 
@@ -38,10 +40,12 @@ def check(
     table.add_column("Component", style="dim", min_width=22)
     table.add_column("Status")
 
-    table.add_row("NemoClaw Installed",
-                  "[green]✓[/green]" if claw.get("installed") else "[dim]–[/dim]")
-    table.add_row("CLI Available",
-                  "[green]✓[/green]" if claw.get("cli_available") else "[dim]–[/dim]")
+    table.add_row(
+        "NemoClaw Installed", "[green]✓[/green]" if claw.get("installed") else "[dim]–[/dim]"
+    )
+    table.add_row(
+        "CLI Available", "[green]✓[/green]" if claw.get("cli_available") else "[dim]–[/dim]"
+    )
     if claw.get("version"):
         table.add_row("Version", claw["version"])
 

@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import typer
+from rich import box
 from rich.console import Console
 from rich.table import Table
-from rich import box
 
 app = typer.Typer(help="NVIDIA GPU diagnostics.", invoke_without_command=True)
 
@@ -27,8 +27,10 @@ def gpu_info(
 
     if not nvidia_smi_available():
         console.print("[yellow]nvidia-smi not available.[/yellow]")
-        console.print("[dim]Possible reasons: no NVIDIA GPU, driver not installed, "
-                      "or running in unsupported environment.[/dim]")
+        console.print(
+            "[dim]Possible reasons: no NVIDIA GPU, driver not installed, "
+            "or running in unsupported environment.[/dim]"
+        )
         return
 
     gpus = collect_gpu_info()
@@ -38,6 +40,7 @@ def gpu_info(
 
     if json_output:
         import json
+
         typer.echo(json.dumps([g.model_dump() for g in gpus], indent=2, default=str))
         return
 
@@ -60,7 +63,13 @@ def gpu_info(
         if gpu.utilization_gpu_pct is not None:
             table.add_row("GPU Utilization", f"{gpu.utilization_gpu_pct}%")
         if gpu.temperature_c is not None:
-            temp_style = "red" if gpu.temperature_c >= 90 else "yellow" if gpu.temperature_c >= 80 else "green"
+            temp_style = (
+                "red"
+                if gpu.temperature_c >= 90
+                else "yellow"
+                if gpu.temperature_c >= 80
+                else "green"
+            )
             table.add_row("Temperature", f"[{temp_style}]{gpu.temperature_c}°C[/{temp_style}]")
         if gpu.power_draw_w is not None:
             table.add_row("Power Draw", f"{gpu.power_draw_w}W / {gpu.power_limit_w or '?'}W")
@@ -77,9 +86,9 @@ def gpu_health(
 ) -> None:
     """Perform GPU health checks."""
     from nvidia_agent_doctor.analyzers.environment import analyze_gpu
-    from nvidia_agent_doctor.reports.terminal import _render_section
-    from nvidia_agent_doctor.reports.json_report import render_json
     from nvidia_agent_doctor.core.result import DiagnosticReport
+    from nvidia_agent_doctor.reports.json_report import render_json
+    from nvidia_agent_doctor.reports.terminal import _render_section
 
     console = Console()
     section = analyze_gpu()

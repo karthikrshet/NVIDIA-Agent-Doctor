@@ -10,7 +10,6 @@ from typer.testing import CliRunner
 
 from nvidia_agent_doctor.cli.main import app
 
-
 runner = CliRunner()
 
 
@@ -39,8 +38,11 @@ class TestDoctorCommand:
     def test_doctor_json_contains_no_plaintext_secrets(self) -> None:
         """JSON output must not contain plaintext secret values."""
         import os
+
         with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-realsecret12345678901234"}):
-            with patch("nvidia_agent_doctor.collectors.gpu.nvidia_smi_available", return_value=False):
+            with patch(
+                "nvidia_agent_doctor.collectors.gpu.nvidia_smi_available", return_value=False
+            ):
                 result = runner.invoke(app, ["doctor", "--json"])
                 assert "sk-realsecret" not in result.output
 
@@ -77,11 +79,10 @@ class TestGPUCommand:
         """gpu info with mocked GPU data should show GPU name."""
         with patch(
             "nvidia_agent_doctor.collectors.gpu._run_nvidia_smi_xml",
-            return_value=nvidia_smi_xml_one_gpu
+            return_value=nvidia_smi_xml_one_gpu,
         ):
             with patch(
-                "nvidia_agent_doctor.collectors.gpu.nvidia_smi_available",
-                return_value=True
+                "nvidia_agent_doctor.collectors.gpu.nvidia_smi_available", return_value=True
             ):
                 result = runner.invoke(app, ["gpu", "info"])
                 assert result.exit_code == 0

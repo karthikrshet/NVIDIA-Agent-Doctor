@@ -14,9 +14,11 @@ _registry: dict[str, CheckerFn] = {}
 
 def register(name: str) -> Callable[[CheckerFn], CheckerFn]:
     """Decorator to register a checker function under a given name."""
+
     def decorator(fn: CheckerFn) -> CheckerFn:
         _registry[name] = fn
         return fn
+
     return decorator
 
 

@@ -21,5 +21,6 @@ def render_json(report: DiagnosticReport, indent: int = 2) -> str:
 def write_json_report(report: DiagnosticReport, output_path: str) -> None:
     """Write JSON report to a file."""
     from pathlib import Path
+
     path = Path(output_path)
     path.write_text(render_json(report), encoding="utf-8")

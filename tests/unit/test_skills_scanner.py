@@ -4,10 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
+from nvidia_agent_doctor.core.severity import SecuritySeverity
 from nvidia_agent_doctor.skills.parser import parse_skill_file
 from nvidia_agent_doctor.skills.scanner import scan_skill, scan_skills_directory
-from nvidia_agent_doctor.core.severity import SecuritySeverity
 
 
 class TestSkillParser:
@@ -43,7 +42,9 @@ class TestSkillParser:
 
 
 class TestSkillScanner:
-    def test_dangerous_skill_gets_high_risk(self, tmp_path: Path, sample_skill_dangerous: str) -> None:
+    def test_dangerous_skill_gets_high_risk(
+        self, tmp_path: Path, sample_skill_dangerous: str
+    ) -> None:
         skill_file = tmp_path / "SKILL.md"
         skill_file.write_text(sample_skill_dangerous)
         skill = parse_skill_file(skill_file)

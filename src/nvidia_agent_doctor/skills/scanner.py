@@ -10,7 +10,6 @@ from nvidia_agent_doctor.core.models import SkillInfo
 from nvidia_agent_doctor.core.severity import SecuritySeverity
 from nvidia_agent_doctor.skills.parser import parse_skill_file
 
-
 # Heuristic patterns for high-risk behaviors
 _DANGEROUS_COMMANDS = {
     "rm -rf": "Recursive deletion command detected",
@@ -29,10 +28,10 @@ _DANGEROUS_COMMANDS = {
 }
 
 _NETWORK_EXFIL_PATTERNS = [
-    re.compile(r"curl\s+.*\$\{?\w+\}?"),           # curl with variable
-    re.compile(r"wget\s+.*\$\{?\w+\}?"),           # wget with variable
-    re.compile(r"nc\s+.*-e"),                       # netcat with exec
-    re.compile(r"python.*http\.server"),            # python http server
+    re.compile(r"curl\s+.*\$\{?\w+\}?"),  # curl with variable
+    re.compile(r"wget\s+.*\$\{?\w+\}?"),  # wget with variable
+    re.compile(r"nc\s+.*-e"),  # netcat with exec
+    re.compile(r"python.*http\.server"),  # python http server
 ]
 
 
@@ -49,12 +48,14 @@ class SkillScanResult:
         description: str,
         recommendation: str,
     ) -> None:
-        self.findings.append({
-            "severity": severity,
-            "title": title,
-            "description": description,
-            "recommendation": recommendation,
-        })
+        self.findings.append(
+            {
+                "severity": severity,
+                "title": title,
+                "description": description,
+                "recommendation": recommendation,
+            }
+        )
         if severity.score > self.risk_level.score:
             self.risk_level = severity
 
@@ -89,8 +90,8 @@ def scan_skill(skill: SkillInfo) -> SkillScanResult:
             )
 
     # Check for network exfiltration patterns
-    for pattern in _NETWORK_EXFIL_PATTERNS:
-        if pattern.search(text):
+    for regex in _NETWORK_EXFIL_PATTERNS:
+        if regex.search(text):
             result.add_finding(
                 severity=SecuritySeverity.HIGH,
                 title="Potential data exfiltration pattern",
@@ -125,27 +126,22 @@ def scan_skill(skill: SkillInfo) -> SkillScanResult:
         result.add_finding(
             severity=SecuritySeverity.HIGH,
             title="Broad filesystem access",
-            description=(
-                f"Skill '{skill.name}' accesses broad filesystem paths: {broad_paths}."
-            ),
+            description=(f"Skill '{skill.name}' accesses broad filesystem paths: {broad_paths}."),
             recommendation="Restrict file access to the minimum required paths.",
         )
 
     # Check external URLs
     external_urls = [
-        u for u in skill.external_urls
+        u
+        for u in skill.external_urls
         if not any(safe in u for safe in ["github.com", "pypi.org", "nvidia.com"])
     ]
     if len(external_urls) > 5:
         result.add_finding(
             severity=SecuritySeverity.LOW,
             title="Multiple external URL references",
-            description=(
-                f"Skill '{skill.name}' references {len(external_urls)} external URLs."
-            ),
-            recommendation=(
-                "Review external URLs to ensure they are trusted and necessary."
-            ),
+            description=(f"Skill '{skill.name}' references {len(external_urls)} external URLs."),
+            recommendation=("Review external URLs to ensure they are trusted and necessary."),
         )
 
     if not result.findings:

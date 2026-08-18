@@ -38,64 +38,69 @@ class SkillRiskGraph:
         """Build risk edges between skills that have complementary capabilities."""
         # Skills with filesystem read access
         fs_readers = [
-            r for r in self.results
-            if r.skill.file_patterns or any(
-                "cat" in cmd or "read" in cmd or "open(" in cmd
-                for cmd in r.skill.shell_commands
+            r
+            for r in self.results
+            if r.skill.file_patterns
+            or any(
+                "cat" in cmd or "read" in cmd or "open(" in cmd for cmd in r.skill.shell_commands
             )
         ]
 
         # Skills with network send capability
         network_senders = [
-            r for r in self.results
-            if r.skill.network_patterns or any(
+            r
+            for r in self.results
+            if r.skill.network_patterns
+            or any(
                 "curl" in cmd or "wget" in cmd or "requests" in cmd
                 for cmd in r.skill.shell_commands
             )
         ]
 
         # Skills with credential access
-        cred_accessors = [
-            r for r in self.results
-            if r.skill.credential_references
-        ]
+        cred_accessors = [r for r in self.results if r.skill.credential_references]
 
         # Filesystem → Network risk
         for fs_skill in fs_readers:
             for net_skill in network_senders:
                 if fs_skill is not net_skill:
-                    self.edges.append(RiskEdge(
-                        source=fs_skill.skill.name,
-                        target=net_skill.skill.name,
-                        risk_type="filesystem_to_network",
-                        severity=SecuritySeverity.MEDIUM,
-                        description=(
-                            f"'{fs_skill.skill.name}' reads local files; "
-                            f"'{net_skill.skill.name}' can send network requests. "
-                            "Combined, these skills could form a data exfiltration path."
-                        ),
-                    ))
+                    self.edges.append(
+                        RiskEdge(
+                            source=fs_skill.skill.name,
+                            target=net_skill.skill.name,
+                            risk_type="filesystem_to_network",
+                            severity=SecuritySeverity.MEDIUM,
+                            description=(
+                                f"'{fs_skill.skill.name}' reads local files; "
+                                f"'{net_skill.skill.name}' can send network requests. "
+                                "Combined, these skills could form a data exfiltration path."
+                            ),
+                        )
+                    )
 
         # Credentials → Network risk
         for cred_skill in cred_accessors:
             for net_skill in network_senders:
                 if cred_skill is not net_skill:
-                    self.edges.append(RiskEdge(
-                        source=cred_skill.skill.name,
-                        target=net_skill.skill.name,
-                        risk_type="credentials_to_network",
-                        severity=SecuritySeverity.HIGH,
-                        description=(
-                            f"'{cred_skill.skill.name}' accesses credentials; "
-                            f"'{net_skill.skill.name}' can send network requests. "
-                            "This combination requires careful review."
-                        ),
-                    ))
+                    self.edges.append(
+                        RiskEdge(
+                            source=cred_skill.skill.name,
+                            target=net_skill.skill.name,
+                            risk_type="credentials_to_network",
+                            severity=SecuritySeverity.HIGH,
+                            description=(
+                                f"'{cred_skill.skill.name}' accesses credentials; "
+                                f"'{net_skill.skill.name}' can send network requests. "
+                                "This combination requires careful review."
+                            ),
+                        )
+                    )
 
     @property
     def high_risk_edges(self) -> list[RiskEdge]:
         return [
-            e for e in self.edges
+            e
+            for e in self.edges
             if e.severity in (SecuritySeverity.HIGH, SecuritySeverity.CRITICAL)
         ]
 
@@ -131,11 +136,13 @@ class SkillRiskGraph:
             prefix = "├──" if result is not self.results[-1] else "└──"
             lines.append(f" {prefix} Skill: {result.skill.name} [{result.risk_level.value}]")
             if result.skill.file_patterns:
-                lines.append(f" │     └── filesystem access")
-            if result.skill.network_patterns or any("curl" in c for c in result.skill.shell_commands):
-                lines.append(f" │     └── network access")
+                lines.append(" │     └── filesystem access")
+            if result.skill.network_patterns or any(
+                "curl" in c for c in result.skill.shell_commands
+            ):
+                lines.append(" │     └── network access")
             if result.skill.credential_references:
-                lines.append(f" │     └── credential references")
+                lines.append(" │     └── credential references")
 
         if self.high_risk_edges:
             lines.append("")

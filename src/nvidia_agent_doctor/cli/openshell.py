@@ -20,15 +20,17 @@ def diagnose(
     verbose: bool = typer.Option(False, "--verbose"),
 ) -> None:
     """Diagnose OpenShell installation and runtime state."""
-    from nvidia_agent_doctor.integrations.openshell import detect_openshell
-    from rich.table import Table
     from rich import box
+    from rich.table import Table
+
+    from nvidia_agent_doctor.integrations.openshell import detect_openshell
 
     console = Console()
     info = detect_openshell()
 
     if json_output:
         import json
+
         typer.echo(json.dumps(info, indent=2, default=str))
         return
 

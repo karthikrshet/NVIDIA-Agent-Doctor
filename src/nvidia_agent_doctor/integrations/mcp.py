@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 from pathlib import Path
 from typing import Any
 
@@ -79,15 +78,11 @@ def _parse_mcp_config(path: Path) -> list[MCPServerInfo]:
     return servers
 
 
-def _parse_server_entry(
-    name: str, cfg: dict[str, Any], config_path: str
-) -> MCPServerInfo:
+def _parse_server_entry(name: str, cfg: dict[str, Any], config_path: str) -> MCPServerInfo:
     """Parse a single server entry, redacting secret env vars."""
     env_vars = cfg.get("env", {})
     if isinstance(env_vars, dict):
-        redacted_env: dict[str, str] = {
-            k: redact_secrets(k, str(v)) for k, v in env_vars.items()
-        }
+        redacted_env: dict[str, str] = {k: redact_secrets(k, str(v)) for k, v in env_vars.items()}
     else:
         redacted_env = {}
 

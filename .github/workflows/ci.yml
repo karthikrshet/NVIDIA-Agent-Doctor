@@ -34,7 +34,6 @@ jobs:
 
       - name: Run type check (mypy)
         run: mypy src/nvidia_agent_doctor/
-        continue-on-error: true  # Non-blocking for now
 
       - name: Run tests
         run: pytest tests/ -v --tb=short -m "not gpu and not slow" --no-cov
@@ -67,13 +66,9 @@ jobs:
         run: pip install -e .
 
       - name: Run nad doctor (CPU/config mode)
-        run: nad doctor --json 2>&1 | head -100
-        # GPU checks will show NOT_INSTALLED on standard runners
-        # This validates the CLI works and exits cleanly
-
-      - name: Verify exit code is meaningful
         run: |
-          nad doctor --json > /dev/null
+          set +e
+          nad doctor --json > nad-self-diagnosis.json
           EXIT_CODE=$?
           echo "Exit code: $EXIT_CODE"
           # 0=healthy, 1=warnings, 2=errors - all are valid on non-GPU runner
@@ -81,6 +76,7 @@ jobs:
             echo "Unexpected exit code: $EXIT_CODE"
             exit 1
           fi
+          python -m json.tool nad-self-diagnosis.json > /dev/null
 
       - name: Run security scan
         run: nad security scan --json

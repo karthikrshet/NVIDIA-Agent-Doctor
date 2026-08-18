@@ -30,7 +30,9 @@ def _check_docker_cli() -> tuple[bool, str | None, str | None]:
     try:
         result = subprocess.run(
             ["docker", "version", "--format", "{{.Client.Version}}|{{.Server.Version}}"],
-            capture_output=True, text=True, timeout=10
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         if result.returncode == 0:
             parts = result.stdout.strip().split("|")
@@ -38,10 +40,7 @@ def _check_docker_cli() -> tuple[bool, str | None, str | None]:
             server = parts[1].strip() if len(parts) > 1 else None
             return True, client, server
         # Docker may be installed but daemon not running
-        result2 = subprocess.run(
-            ["docker", "--version"],
-            capture_output=True, text=True, timeout=5
-        )
+        result2 = subprocess.run(["docker", "--version"], capture_output=True, text=True, timeout=5)
         if result2.returncode == 0:
             return True, result2.stdout.strip(), None
         return False, None, None
@@ -55,7 +54,9 @@ def _check_nvidia_runtime() -> bool:
     try:
         result = subprocess.run(
             ["docker", "info", "--format", "{{.Runtimes}}"],
-            capture_output=True, text=True, timeout=15
+            capture_output=True,
+            text=True,
+            timeout=15,
         )
         if result.returncode == 0 and "nvidia" in result.stdout.lower():
             return True
@@ -65,8 +66,7 @@ def _check_nvidia_runtime() -> bool:
     # Check for nvidia-container-toolkit / nvidia-container-runtime binaries
     try:
         result = subprocess.run(
-            ["which", "nvidia-container-runtime"],
-            capture_output=True, text=True, timeout=5
+            ["which", "nvidia-container-runtime"], capture_output=True, text=True, timeout=5
         )
         if result.returncode == 0:
             return True
@@ -75,6 +75,7 @@ def _check_nvidia_runtime() -> bool:
 
     # Windows: check for path
     import shutil
+
     if shutil.which("nvidia-container-runtime"):
         return True
 

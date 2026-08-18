@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import typer
+from rich import box
 from rich.console import Console
 from rich.table import Table
-from rich import box
 
 app = typer.Typer(help="Security analysis.", invoke_without_command=True)
 
@@ -23,9 +23,9 @@ def scan(
 ) -> None:
     """Perform a security analysis of the NVIDIA AI environment."""
     from nvidia_agent_doctor.analyzers.security import analyze_security
-    from nvidia_agent_doctor.reports.terminal import _render_section
-    from nvidia_agent_doctor.reports.json_report import render_json
     from nvidia_agent_doctor.core.result import DiagnosticReport
+    from nvidia_agent_doctor.reports.json_report import render_json
+    from nvidia_agent_doctor.reports.terminal import _render_section
 
     console = Console()
     section = analyze_security()
@@ -59,6 +59,4 @@ def scan(
 
         console.print(table)
 
-    console.print(
-        "\n[dim]Note: Security scan is heuristic. Always verify findings manually.[/dim]"
-    )
+    console.print("\n[dim]Note: Security scan is heuristic. Always verify findings manually.[/dim]")

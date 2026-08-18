@@ -5,9 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import typer
+from rich import box
 from rich.console import Console
 from rich.table import Table
-from rich import box
 
 app = typer.Typer(help="Agent skills scanning.", invoke_without_command=True)
 
@@ -36,8 +36,8 @@ def scan(
     This is HEURISTIC STATIC ANALYSIS only. Results require human review.
     False positives and false negatives are possible.
     """
-    from nvidia_agent_doctor.skills.scanner import scan_skills_directory
     from nvidia_agent_doctor.skills.registry import SkillRiskGraph
+    from nvidia_agent_doctor.skills.scanner import scan_skills_directory
 
     console = Console()
 
@@ -54,16 +54,16 @@ def scan(
 
     if json_output:
         import json
+
         output = []
         for r in results:
-            output.append({
-                "skill": r.skill.model_dump(),
-                "risk_level": r.risk_level.value,
-                "findings": [
-                    {**f, "severity": f["severity"].value}
-                    for f in r.findings
-                ],
-            })
+            output.append(
+                {
+                    "skill": r.skill.model_dump(),
+                    "risk_level": r.risk_level.value,
+                    "findings": [{**f, "severity": f["severity"].value} for f in r.findings],
+                }
+            )
         if risk_graph:
             graph = SkillRiskGraph(results)
             typer.echo(json.dumps({"skills": output, "risk_graph": graph.to_dict()}, indent=2))
@@ -104,7 +104,7 @@ def scan(
 
     if risk_graph:
         graph = SkillRiskGraph(results)
-        console.print(f"\n[bold]Cross-Skill Risk Graph[/bold]")
+        console.print("\n[bold]Cross-Skill Risk Graph[/bold]")
         console.print(graph.render_ascii())
 
     console.print(

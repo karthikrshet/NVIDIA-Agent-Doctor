@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -50,8 +51,11 @@ def detect_openshell() -> dict[str, Any]:
 
     # Check environment variables
     env_indicators = [
-        "OPENSHELL_HOME", "OPENSHELL_CONFIG", "OSH_HOME",
-        "OPENSHELL_API_KEY", "OSH_API_KEY",
+        "OPENSHELL_HOME",
+        "OPENSHELL_CONFIG",
+        "OSH_HOME",
+        "OPENSHELL_API_KEY",
+        "OSH_API_KEY",
     ]
     env_found = {k: os.environ.get(k) is not None for k in env_indicators}
     if any(env_found.values()):
@@ -84,12 +88,10 @@ def detect_openshell() -> dict[str, Any]:
 def _get_cli_version(cli_path: str) -> str | None:
     for flag in ["--version", "version", "-v"]:
         try:
-            proc = subprocess.run(
-                [cli_path, flag],
-                capture_output=True, text=True, timeout=5
-            )
+            proc = subprocess.run([cli_path, flag], capture_output=True, text=True, timeout=5)
             if proc.returncode == 0 and proc.stdout.strip():
                 import re
+
                 match = re.search(r"(\d+\.\d+(?:\.\d+)?)", proc.stdout)
                 if match:
                     return match.group(1)
@@ -101,21 +103,12 @@ def _get_cli_version(cli_path: str) -> str | None:
 def _parse_openshell_config(config_path: Path, result: dict[str, Any]) -> None:
     """Read an OpenShell config file and populate presence flags."""
     try:
-        import sys
-        if sys.version_info >= (3, 11):
-            import tomllib
-            with config_path.open("rb") as f:
-                data = tomllib.load(f)  # type: ignore
-        else:
-            import tomli
-            with config_path.open("rb") as f:
-                data = tomli.load(f)  # type: ignore
+        with config_path.open("rb") as f:
+            data = tomllib.load(f)
 
         result["policy_configured"] = "policy" in data or "policies" in data
         result["network_configured"] = "network" in data
-        result["credentials_configured"] = (
-            "credentials" in data or "auth" in data
-        )
+        result["credentials_configured"] = "credentials" in data or "auth" in data
         result["observability_configured"] = (
             "observability" in data or "telemetry" in data or "tracing" in data
         )
@@ -125,17 +118,14 @@ def _parse_openshell_config(config_path: Path, result: dict[str, Any]) -> None:
         # Not a TOML file — try YAML
         try:
             import yaml
+
             with config_path.open() as f:
                 data = yaml.safe_load(f) or {}
 
             result["policy_configured"] = "policy" in data or "policies" in data
             result["network_configured"] = "network" in data
-            result["credentials_configured"] = (
-                "credentials" in data or "auth" in data
-            )
-            result["observability_configured"] = (
-                "observability" in data or "telemetry" in data
-            )
+            result["credentials_configured"] = "credentials" in data or "auth" in data
+            result["observability_configured"] = "observability" in data or "telemetry" in data
         except Exception:
             pass
 
@@ -144,6 +134,7 @@ def _detect_runtime_process() -> bool | None:
     """Check if an OpenShell runtime/gateway process is running."""
     try:
         import psutil
+
         runtime_names = ["openshell", "osh-runtime", "osh-gateway", "openshell-agent"]
         for proc in psutil.process_iter(["name", "cmdline"]):
             try:

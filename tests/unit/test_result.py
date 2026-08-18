@@ -2,19 +2,20 @@
 
 from __future__ import annotations
 
-import pytest
 from nvidia_agent_doctor.core.result import CheckResult, DiagnosticReport, SectionResult
-from nvidia_agent_doctor.core.severity import Severity, SecuritySeverity
+from nvidia_agent_doctor.core.severity import Severity
 
 
 def make_section(name: str, severities: list[Severity]) -> SectionResult:
     section = SectionResult(name=name, display_name=name)
     for i, sev in enumerate(severities):
-        section.checks.append(CheckResult(
-            name=f"check_{i}",
-            severity=sev,
-            message=f"Check {i}",
-        ))
+        section.checks.append(
+            CheckResult(
+                name=f"check_{i}",
+                severity=sev,
+                message=f"Check {i}",
+            )
+        )
     return section
 
 
@@ -45,10 +46,9 @@ class TestSectionResult:
 
     def test_recommendations_collected(self) -> None:
         section = SectionResult(name="test", display_name="Test")
-        section.checks.append(CheckResult(
-            name="c1", severity=Severity.WARNING,
-            message="msg", recommendation="Do X"
-        ))
+        section.checks.append(
+            CheckResult(name="c1", severity=Severity.WARNING, message="msg", recommendation="Do X")
+        )
         assert "Do X" in section.recommendations
 
 
@@ -86,6 +86,7 @@ class TestDiagnosticReport:
 
     def test_json_serialization(self) -> None:
         import json
+
         report = DiagnosticReport()
         report.add_section(make_section("test", [Severity.PASS]))
         data = json.dumps(report.to_json_dict(), default=str)
@@ -97,14 +98,17 @@ class TestDiagnosticReport:
     def test_all_recommendations_deduped(self) -> None:
         report = DiagnosticReport()
         section = SectionResult(name="test", display_name="Test")
-        section.checks.append(CheckResult(
-            name="c1", severity=Severity.WARNING,
-            message="m1", recommendation="Do X"
-        ))
-        section.checks.append(CheckResult(
-            name="c2", severity=Severity.WARNING,
-            message="m2", recommendation="Do X"  # duplicate
-        ))
+        section.checks.append(
+            CheckResult(name="c1", severity=Severity.WARNING, message="m1", recommendation="Do X")
+        )
+        section.checks.append(
+            CheckResult(
+                name="c2",
+                severity=Severity.WARNING,
+                message="m2",
+                recommendation="Do X",  # duplicate
+            )
+        )
         report.add_section(section)
         recs = report.all_recommendations
         assert recs.count("Do X") == 1

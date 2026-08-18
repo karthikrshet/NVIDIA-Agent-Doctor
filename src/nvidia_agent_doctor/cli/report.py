@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -19,14 +18,16 @@ def report_default(ctx: typer.Context) -> None:
 
 @app.command("generate")
 def generate(
-    format: str = typer.Option("terminal", "--format", "-f",
-                               help="Output format: terminal, json, markdown, html"),
-    output: Optional[Path] = typer.Option(None, "--output", "-o",
-                                          help="Output file path (default: stdout for text formats)"),
+    format: str = typer.Option(
+        "terminal", "--format", "-f", help="Output format: terminal, json, markdown, html"
+    ),
+    output: Path | None = typer.Option(
+        None, "--output", "-o", help="Output file path (default: stdout for text formats)"
+    ),
 ) -> None:
     """Generate a full diagnostic report in the specified format."""
     from nvidia_agent_doctor.cli.doctor import _run_doctor
-    from nvidia_agent_doctor.reports import terminal, json_report, markdown, html
+    from nvidia_agent_doctor.reports import html, json_report, markdown, terminal
 
     console = Console()
     report = _run_doctor(console, quiet=True)

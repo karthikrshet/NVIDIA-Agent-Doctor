@@ -39,6 +39,7 @@ dependencies = [
     "rich>=13.7.0",
     "pydantic>=2.6.0",
     "psutil>=5.9.0",
+    "defusedxml>=0.7.1",
     "tomli>=2.0.0; python_version < '3.11'",
 ]
 
@@ -89,6 +90,11 @@ ignore = [
     "S603",  # subprocess call - we use it intentionally
     "S607",  # partial-path subprocess - we handle this
     "T201",  # print found - CLI tools use print via Rich
+    "B008",  # Typer declares command parameters through default values
+    "E501",  # Ruff formatter is authoritative for generated HTML and CLI strings
+    "S105",  # "PASS" is a diagnostic status, not a credential
+    "S110",  # Optional integration probes intentionally degrade gracefully
+    "S112",  # Invalid optional configuration files are skipped during discovery
 ]
 
 [tool.ruff.lint.per-file-ignores]

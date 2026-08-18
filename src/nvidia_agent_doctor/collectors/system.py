@@ -65,9 +65,12 @@ def _get_cpu_model() -> str | None:
     elif system == "Darwin":
         try:
             import subprocess
+
             result = subprocess.run(
                 ["sysctl", "-n", "machdep.cpu.brand_string"],
-                capture_output=True, text=True, timeout=5
+                capture_output=True,
+                text=True,
+                timeout=5,
             )
             if result.returncode == 0:
                 return result.stdout.strip()
@@ -76,11 +79,11 @@ def _get_cpu_model() -> str | None:
     elif system == "Windows":
         try:
             import subprocess
+
             result = subprocess.run(
-                ["wmic", "cpu", "get", "name"],
-                capture_output=True, text=True, timeout=5
+                ["wmic", "cpu", "get", "name"], capture_output=True, text=True, timeout=5
             )
-            lines = [l.strip() for l in result.stdout.splitlines() if l.strip()]
+            lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
             if len(lines) >= 2:
                 return lines[1]
         except Exception:

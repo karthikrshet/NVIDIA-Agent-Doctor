@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import sys
+import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -63,14 +63,8 @@ class NADConfig(BaseModel):
 def _load_toml(path: Path) -> dict[str, Any]:
     """Load a TOML file, returning an empty dict on any error."""
     try:
-        if sys.version_info >= (3, 11):
-            import tomllib
-            with path.open("rb") as f:
-                return tomllib.load(f)  # type: ignore[return-value]
-        else:
-            import tomli
-            with path.open("rb") as f:
-                return tomli.load(f)  # type: ignore[return-value]
+        with path.open("rb") as f:
+            return tomllib.load(f)
     except Exception:
         return {}
 
@@ -88,10 +82,12 @@ def load_config(config_path: Path | None = None) -> NADConfig:
     if config_path is not None:
         candidates.append(config_path)
 
-    candidates.extend([
-        Path.cwd() / ".nvidia-agent-doctor.toml",
-        Path.home() / ".nvidia-agent-doctor.toml",
-    ])
+    candidates.extend(
+        [
+            Path.cwd() / ".nvidia-agent-doctor.toml",
+            Path.home() / ".nvidia-agent-doctor.toml",
+        ]
+    )
 
     raw: dict[str, Any] = {}
     for candidate in candidates:

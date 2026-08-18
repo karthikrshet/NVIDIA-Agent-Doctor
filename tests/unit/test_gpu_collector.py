@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
-import pytest
 from unittest.mock import MagicMock, patch
+from xml.etree.ElementTree import ParseError
+
+import pytest
+from defusedxml.common import DefusedXmlException
 
 from nvidia_agent_doctor.collectors.gpu import (
     _parse_nvidia_smi_xml,
@@ -40,7 +43,7 @@ class TestNvidiaSmiXmlParser:
         assert gpu.vram_total_gb > 20  # ~24 GB
 
     def test_invalid_xml_returns_empty(self) -> None:
-        with pytest.raises(Exception):
+        with pytest.raises((DefusedXmlException, ParseError)):
             _parse_nvidia_smi_xml("not xml at all {{}")
 
 
@@ -66,7 +69,7 @@ class TestCollectGpuInfo:
     def test_returns_gpus_from_xml(self, nvidia_smi_xml_one_gpu: str) -> None:
         with patch(
             "nvidia_agent_doctor.collectors.gpu._run_nvidia_smi_xml",
-            return_value=nvidia_smi_xml_one_gpu
+            return_value=nvidia_smi_xml_one_gpu,
         ):
             result = collect_gpu_info()
             assert result is not None

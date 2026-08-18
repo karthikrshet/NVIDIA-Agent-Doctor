@@ -29,7 +29,8 @@ def detect_nemotron() -> dict[str, Any]:
 
     # Check for NeMo Python package
     try:
-        from importlib.metadata import version, PackageNotFoundError
+        from importlib.metadata import PackageNotFoundError, version
+
         try:
             nemo_ver = version("nemo_toolkit")
             result["nemo_installed"] = True
@@ -43,7 +44,8 @@ def detect_nemotron() -> dict[str, Any]:
     # Try nemo import directly
     if not result["nemo_installed"]:
         try:
-            import nemo  # type: ignore[import]
+            import nemo
+
             result["nemo_installed"] = True
             result["nemo_version"] = getattr(nemo, "__version__", None)
             result["installed"] = True
@@ -84,8 +86,7 @@ def detect_nemoclaw() -> dict[str, Any]:
         "cli_available": False,
         "detection_method": "heuristic",
         "note": (
-            "NemoClaw detection is heuristic based on CLI binary and "
-            "environment variable presence."
+            "NemoClaw detection is heuristic based on CLI binary and environment variable presence."
         ),
     }
 
@@ -106,7 +107,8 @@ def detect_nemoclaw() -> dict[str, Any]:
 
     # Try package import
     try:
-        import nemoclaw  # type: ignore[import]
+        import nemoclaw
+
         result["installed"] = True
         result["version"] = getattr(nemoclaw, "__version__", None)
     except ImportError:
@@ -120,11 +122,10 @@ def detect_nemoclaw() -> dict[str, Any]:
 def _get_cli_version(binary: str) -> str | None:
     for flag in ["--version", "version"]:
         try:
-            proc = subprocess.run(
-                [binary, flag], capture_output=True, text=True, timeout=5
-            )
+            proc = subprocess.run([binary, flag], capture_output=True, text=True, timeout=5)
             if proc.returncode == 0:
                 import re
+
                 match = re.search(r"(\d+\.\d+(?:\.\d+)?)", proc.stdout)
                 if match:
                     return match.group(1)

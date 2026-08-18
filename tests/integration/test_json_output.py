@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-import pytest
+
 from nvidia_agent_doctor.core.result import CheckResult, DiagnosticReport, SectionResult
 from nvidia_agent_doctor.core.severity import Severity
 from nvidia_agent_doctor.reports.json_report import render_json
@@ -13,11 +13,13 @@ class TestJsonOutput:
     def _make_report(self) -> DiagnosticReport:
         report = DiagnosticReport()
         section = SectionResult(name="gpu", display_name="GPU")
-        section.checks.append(CheckResult(
-            name="gpu_detected",
-            severity=Severity.PASS,
-            message="GPU detected",
-        ))
+        section.checks.append(
+            CheckResult(
+                name="gpu_detected",
+                severity=Severity.PASS,
+                message="GPU detected",
+            )
+        )
         report.add_section(section)
         return report
 
@@ -59,16 +61,17 @@ class TestJsonOutput:
 
     def test_no_raw_secrets_in_check_messages(self) -> None:
         """Verify that check messages and recommendations don't contain raw secrets."""
-        from nvidia_agent_doctor.security.credentials import redact_secrets
         report = self._make_report()
         # Simulate a check that might have seen a secret in its message
         section = report.sections["gpu"]
-        section.checks.append(CheckResult(
-            name="env_check",
-            severity=Severity.WARNING,
-            message="Sensitive variable detected",
-            detail="Value redacted",
-        ))
+        section.checks.append(
+            CheckResult(
+                name="env_check",
+                severity=Severity.WARNING,
+                message="Sensitive variable detected",
+                detail="Value redacted",
+            )
+        )
         output = render_json(report)
         # The check message should NOT contain raw secrets
         assert "sk-fakesecret" not in output

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import pytest
 
-
 # ── nvidia-smi mock XML ────────────────────────────────────────────────────────
 
 NVIDIA_SMI_XML_ONE_GPU = """<?xml version="1.0" ?>

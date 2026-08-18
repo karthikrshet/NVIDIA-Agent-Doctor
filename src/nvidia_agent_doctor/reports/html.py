@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from nvidia_agent_doctor.core.result import DiagnosticReport
 
-
 _SEVERITY_COLORS = {
     "PASS": "#22c55e",
     "WARNING": "#f59e0b",
@@ -48,7 +47,11 @@ def render_html(report: DiagnosticReport) -> str:
             c_color = _SEVERITY_COLORS.get(check.severity.value, "#9ca3af")
             c_icon = _SEVERITY_ICONS.get(check.severity.value, "?")
             detail = check.detail or ""
-            rec = f'<br><span class="rec">→ {check.recommendation}</span>' if check.recommendation else ""
+            rec = (
+                f'<br><span class="rec">→ {check.recommendation}</span>'
+                if check.recommendation
+                else ""
+            )
             checks_rows += f"""
             <tr>
                 <td>{check.name}</td>
@@ -66,7 +69,7 @@ def render_html(report: DiagnosticReport) -> str:
         </div>"""
 
     recs_html = ""
-    for i, rec in enumerate(report.all_recommendations[:20], 1):
+    for rec in report.all_recommendations[:20]:
         recs_html += f"<li>{rec}</li>"
 
     findings_html = ""
@@ -176,4 +179,5 @@ def render_html(report: DiagnosticReport) -> str:
 
 def write_html_report(report: DiagnosticReport, output_path: str) -> None:
     from pathlib import Path
+
     Path(output_path).write_text(render_html(report), encoding="utf-8")

@@ -18,10 +18,7 @@ def bench_default(ctx: typer.Context) -> None:
 def run(
     json_output: bool = typer.Option(False, "--json"),
     gpu_only: bool = typer.Option(False, "--gpu-only", help="Only run GPU benchmark."),
-    confirm: bool = typer.Option(
-        False, "--yes", "-y",
-        help="Skip confirmation prompt."
-    ),
+    confirm: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt."),
 ) -> None:
     """
     Run performance benchmarks.
@@ -39,10 +36,12 @@ def run(
             return
 
     from nvidia_agent_doctor.benchmark.runner import run_benchmarks
+
     results = run_benchmarks(gpu_only=gpu_only)
 
     if json_output:
         import json
+
         typer.echo(json.dumps(results, indent=2, default=str))
         return
 

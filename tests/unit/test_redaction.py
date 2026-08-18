@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import pytest
+
 from nvidia_agent_doctor.security.credentials import (
     REDACTED,
-    redact_secrets,
     redact_env_dict,
+    redact_secrets,
     scan_environment_for_exposed_secrets,
 )
 

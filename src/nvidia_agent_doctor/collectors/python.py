@@ -9,7 +9,6 @@ from typing import Any
 
 from nvidia_agent_doctor.core.models import PythonPackageInfo
 
-
 _PACKAGES_TO_CHECK = [
     "torch",
     "tensorrt",
@@ -66,7 +65,8 @@ def _check_package(package_name: str) -> PythonPackageInfo:
 def _get_package_version(package_name: str, import_name: str) -> str | None:
     """Get package version via importlib.metadata or __version__ attribute."""
     try:
-        from importlib.metadata import version, PackageNotFoundError
+        from importlib.metadata import version
+
         return version(package_name)
     except Exception:
         pass
@@ -81,7 +81,9 @@ def _get_package_version(package_name: str, import_name: str) -> str | None:
     try:
         result = subprocess.run(
             [sys.executable, "-m", "pip", "show", package_name],
-            capture_output=True, text=True, timeout=15
+            capture_output=True,
+            text=True,
+            timeout=15,
         )
         for line in result.stdout.splitlines():
             if line.startswith("Version:"):
@@ -97,7 +99,8 @@ def _get_torch_info() -> dict[str, Any]:
     extra: dict[str, Any] = {}
     try:
         import torch
-        extra["cuda_version"] = getattr(torch.version, "cuda", None)  # type: ignore
+
+        extra["cuda_version"] = getattr(torch.version, "cuda", None)
         extra["cuda_available"] = torch.cuda.is_available()
         if torch.cuda.is_available():
             extra["device_count"] = torch.cuda.device_count()

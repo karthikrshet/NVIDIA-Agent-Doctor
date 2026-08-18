@@ -54,8 +54,7 @@ def _detect_toolkit_version(
     if nvcc_path:
         try:
             result = subprocess.run(
-                [nvcc_path, "--version"],
-                capture_output=True, text=True, timeout=10
+                [nvcc_path, "--version"], capture_output=True, text=True, timeout=10
             )
             if result.returncode == 0:
                 return _parse_nvcc_version(result.stdout)
@@ -81,6 +80,7 @@ def _detect_toolkit_version(
         if version_json.exists():
             try:
                 import json
+
                 data = json.loads(version_json.read_text())
                 cuda_data = data.get("cuda", {})
                 version = cuda_data.get("version")
@@ -105,8 +105,9 @@ def _detect_runtime_version() -> str | None:
     # Try via PyTorch if available
     try:
         import torch
+
         if hasattr(torch, "version") and hasattr(torch.version, "cuda"):
-            cuda_ver = torch.version.cuda  # type: ignore[attr-defined]
+            cuda_ver = torch.version.cuda
             if cuda_ver:
                 return str(cuda_ver)
     except ImportError:
@@ -114,10 +115,7 @@ def _detect_runtime_version() -> str | None:
 
     # Try via nvidia-smi
     try:
-        result = subprocess.run(
-            ["nvidia-smi"],
-            capture_output=True, text=True, timeout=10
-        )
+        result = subprocess.run(["nvidia-smi"], capture_output=True, text=True, timeout=10)
         if result.returncode == 0:
             match = re.search(r"CUDA Version:\s+(\d+\.\d+)", result.stdout)
             if match:
@@ -133,7 +131,9 @@ def _detect_driver_cuda_version() -> str | None:
     try:
         result = subprocess.run(
             ["nvidia-smi", "--query-gpu=driver_version", "--format=csv,noheader"],
-            capture_output=True, text=True, timeout=10
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         if result.returncode == 0:
             driver = result.stdout.strip().splitlines()[0].strip()
@@ -151,18 +151,26 @@ def _find_cuda_libraries(
 ) -> list[str]:
     """Search for common CUDA libraries."""
     important_libs = [
-        "libcudart", "libcublas", "libcufft", "libcurand",
-        "libcusolver", "libcusparse", "libnccl", "libnvrtc",
+        "libcudart",
+        "libcublas",
+        "libcufft",
+        "libcurand",
+        "libcusolver",
+        "libcusparse",
+        "libnccl",
+        "libnvrtc",
     ]
     found: list[str] = []
 
     search_dirs: list[Path] = []
     for base in [cuda_home, cuda_path]:
         if base:
-            search_dirs.extend([
-                Path(base) / "lib64",
-                Path(base) / "lib",
-            ])
+            search_dirs.extend(
+                [
+                    Path(base) / "lib64",
+                    Path(base) / "lib",
+                ]
+            )
 
     if ld_lib_path:
         for p in ld_lib_path.split(":"):

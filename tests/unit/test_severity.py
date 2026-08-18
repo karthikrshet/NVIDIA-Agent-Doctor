@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import pytest
-from nvidia_agent_doctor.core.severity import Severity, SecuritySeverity
+from nvidia_agent_doctor.core.severity import SecuritySeverity, Severity
 
 
 class TestSeverity:

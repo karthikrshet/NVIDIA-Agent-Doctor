@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -53,13 +52,14 @@ def main(
     verbose: bool = typer.Option(False, "--verbose", help="Enable verbose output."),
     quiet: bool = typer.Option(False, "--quiet", help="Suppress all non-essential output."),
     no_color: bool = typer.Option(False, "--no-color", help="Disable colored output."),
-    config: Optional[Path] = typer.Option(None, "--config", help="Path to config file."),
+    config: Path | None = typer.Option(None, "--config", help="Path to config file."),
 ) -> None:
     """NVIDIA Agent Doctor CLI."""
     global _json_mode, _verbose, _quiet, _console
 
     if no_color:
         import os
+
         os.environ["NO_COLOR"] = "1"
         _console = Console(no_color=True)
 
@@ -70,6 +70,7 @@ def main(
     if version:
         if json_output:
             import json
+
             typer.echo(json.dumps({"version": __version__, "tool": "nvidia-agent-doctor"}))
         else:
             _console.print(f"[bold]nvidia-agent-doctor[/bold] v{__version__}")
@@ -79,18 +80,18 @@ def main(
 # ── Subcommand imports ─────────────────────────────────────────────────────────
 # (imported after app is defined to avoid circular imports)
 
+from nvidia_agent_doctor.cli import benchmark as _bench_mod  # noqa: E402
+from nvidia_agent_doctor.cli import compatibility as _compat_mod  # noqa: E402
+from nvidia_agent_doctor.cli import cuda as _cuda_mod  # noqa: E402
 from nvidia_agent_doctor.cli import doctor as _doctor_mod  # noqa: E402
 from nvidia_agent_doctor.cli import gpu as _gpu_mod  # noqa: E402
-from nvidia_agent_doctor.cli import cuda as _cuda_mod  # noqa: E402
-from nvidia_agent_doctor.cli import security as _sec_mod  # noqa: E402
 from nvidia_agent_doctor.cli import mcp as _mcp_mod  # noqa: E402
-from nvidia_agent_doctor.cli import skills as _skills_mod  # noqa: E402
-from nvidia_agent_doctor.cli import compatibility as _compat_mod  # noqa: E402
-from nvidia_agent_doctor.cli import benchmark as _bench_mod  # noqa: E402
-from nvidia_agent_doctor.cli import report as _report_mod  # noqa: E402
-from nvidia_agent_doctor.cli import openshell as _osh_mod  # noqa: E402
-from nvidia_agent_doctor.cli import nemotron as _nem_mod  # noqa: E402
 from nvidia_agent_doctor.cli import nemoclaw as _claw_mod  # noqa: E402
+from nvidia_agent_doctor.cli import nemotron as _nem_mod  # noqa: E402
+from nvidia_agent_doctor.cli import openshell as _osh_mod  # noqa: E402
+from nvidia_agent_doctor.cli import report as _report_mod  # noqa: E402
+from nvidia_agent_doctor.cli import security as _sec_mod  # noqa: E402
+from nvidia_agent_doctor.cli import skills as _skills_mod  # noqa: E402
 
 app.add_typer(_doctor_mod.app, name="doctor")
 app.add_typer(_gpu_mod.app, name="gpu")

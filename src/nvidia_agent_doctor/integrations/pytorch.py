@@ -26,6 +26,7 @@ def check_pytorch() -> dict[str, Any]:
 
     try:
         import torch
+
         result["installed"] = True
         result["version"] = torch.__version__
         result["cuda_version"] = getattr(torch.version, "cuda", None)
@@ -46,8 +47,8 @@ def check_pytorch() -> dict[str, Any]:
             try:
                 props = torch.cuda.get_device_properties(0)
                 major = props.major
-                result["bf16_support"] = major >= 8   # Ampere+
-                result["fp16_support"] = major >= 7   # Volta+
+                result["bf16_support"] = major >= 8  # Ampere+
+                result["fp16_support"] = major >= 7  # Volta+
                 result["compute_capability"] = f"{props.major}.{props.minor}"
             except Exception:
                 pass

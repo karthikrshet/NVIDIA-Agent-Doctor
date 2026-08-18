@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import datetime
-
 from nvidia_agent_doctor.core.result import DiagnosticReport, SectionResult
-from nvidia_agent_doctor.core.severity import Severity
 
 
 def render_markdown(report: DiagnosticReport) -> str:
@@ -60,8 +57,14 @@ def render_markdown(report: DiagnosticReport) -> str:
 def _render_section_md(section: SectionResult) -> list[str]:
     lines: list[str] = []
     sev = section.overall_severity
-    icon = {"PASS": "✅", "WARNING": "⚠️", "ERROR": "❌",
-            "NOT_INSTALLED": "➖", "NOT_APPLICABLE": "·", "UNKNOWN": "❓"}.get(sev.value, "")
+    icon = {
+        "PASS": "✅",
+        "WARNING": "⚠️",
+        "ERROR": "❌",
+        "NOT_INSTALLED": "➖",
+        "NOT_APPLICABLE": "·",
+        "UNKNOWN": "❓",
+    }.get(sev.value, "")
 
     lines.append(f"## {icon} {section.display_name}")
     lines.append("")
@@ -94,4 +97,5 @@ def _render_section_md(section: SectionResult) -> list[str]:
 
 def write_markdown_report(report: DiagnosticReport, output_path: str) -> None:
     from pathlib import Path
+
     Path(output_path).write_text(render_markdown(report), encoding="utf-8")

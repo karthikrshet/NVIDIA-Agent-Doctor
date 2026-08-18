@@ -8,8 +8,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from nvidia_agent_doctor.core.result import DiagnosticReport, SectionResult
-from nvidia_agent_doctor.core.severity import Severity
+from nvidia_agent_doctor.core.result import CheckResult, DiagnosticReport, SectionResult
 
 
 def render_report(report: DiagnosticReport, console: Console | None = None) -> None:
@@ -46,7 +45,7 @@ def render_doctor_summary(report: DiagnosticReport, console: Console | None = No
     table.add_column("Component", style="bold white", min_width=24)
     table.add_column("Status", justify="right", min_width=14)
 
-    _DISPLAY_NAMES = {
+    display_names = {
         "system": "System",
         "gpu": "NVIDIA GPU",
         "cuda": "CUDA",
@@ -64,7 +63,7 @@ def render_doctor_summary(report: DiagnosticReport, console: Console | None = No
     }
 
     for name, section in report.sections.items():
-        display = _DISPLAY_NAMES.get(name, section.display_name)
+        display = display_names.get(name, section.display_name)
         sev = section.overall_severity
         icon = sev.icon
         color = sev.color
@@ -82,17 +81,16 @@ def _render_header(console: Console) -> None:
     header_text = Text()
     header_text.append("  NVIDIA AGENT DOCTOR  ", style="bold white on dark_blue")
     header_text.append("\n")
-    header_text.append(
-        "  Independent Open-Source Diagnostic Toolkit  ",
-        style="dim white"
-    )
+    header_text.append("  Independent Open-Source Diagnostic Toolkit  ", style="dim white")
 
-    console.print(Panel(
-        header_text,
-        border_style="bright_blue",
-        expand=False,
-        padding=(0, 4),
-    ))
+    console.print(
+        Panel(
+            header_text,
+            border_style="bright_blue",
+            expand=False,
+            padding=(0, 4),
+        )
+    )
 
 
 def _render_section(section: SectionResult, console: Console) -> None:
@@ -111,14 +109,13 @@ def _render_section(section: SectionResult, console: Console) -> None:
         console.print("   [dim]Security findings:[/dim]")
         for finding in section.security_findings:
             console.print(
-                f"   [{finding.severity.color}]{finding.severity.value}[/] "
-                f"{finding.title}"
+                f"   [{finding.severity.color}]{finding.severity.value}[/] {finding.title}"
             )
 
     console.print()
 
 
-def _render_check_line(check: "CheckResult", console: Console, indent: str = "") -> None:  # noqa: F821
+def _render_check_line(check: CheckResult, console: Console, indent: str = "") -> None:
     """Render a single check result line."""
     icon = check.severity.icon
     color = check.severity.color
@@ -175,13 +172,15 @@ def _render_summary(report: DiagnosticReport, console: Console) -> None:
     )
     summary.add_row("Recommendations:", str(recs))
 
-    console.print(Panel(
-        summary,
-        title="[bold]Diagnostic Summary[/bold]",
-        border_style="bright_black",
-        expand=False,
-        padding=(0, 2),
-    ))
+    console.print(
+        Panel(
+            summary,
+            title="[bold]Diagnostic Summary[/bold]",
+            border_style="bright_black",
+            expand=False,
+            padding=(0, 2),
+        )
+    )
 
     if report.all_recommendations:
         console.print("\n[bold]Recommendations:[/bold]")

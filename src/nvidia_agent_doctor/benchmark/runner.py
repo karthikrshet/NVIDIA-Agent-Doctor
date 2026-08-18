@@ -27,6 +27,7 @@ def _benchmark_gpu() -> dict[str, Any]:
     """Basic GPU compute benchmark using PyTorch if available."""
     try:
         import torch
+
         if not torch.cuda.is_available():
             return {"skipped": True, "reason": "CUDA not available"}
 
@@ -64,6 +65,7 @@ def _benchmark_cuda() -> dict[str, Any]:
     """Basic CUDA memory bandwidth benchmark."""
     try:
         import torch
+
         if not torch.cuda.is_available():
             return {"skipped": True, "reason": "CUDA not available"}
 
@@ -100,11 +102,12 @@ def _benchmark_system_memory() -> dict[str, Any]:
     """Basic system memory bandwidth benchmark."""
     try:
         import array
+
         size = 64 * 1024 * 1024  # 64M integers = 256MB
 
         a = array.array("f", [1.0] * size)
         start = time.perf_counter()
-        b = array.array("f", a)  # copy
+        _copy = array.array("f", a)  # copy
         elapsed = time.perf_counter() - start
 
         bandwidth_gb_s = round((size * 4) / elapsed / 1e9, 2)

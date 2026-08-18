@@ -8,7 +8,6 @@ from typing import Any
 
 from nvidia_agent_doctor.core.models import SkillInfo
 
-
 _FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 
 # Heuristic patterns
@@ -62,6 +61,7 @@ def _parse_frontmatter(content: str) -> dict[str, Any]:
         return {}
     try:
         import yaml
+
         data = yaml.safe_load(match.group(1))
         return data if isinstance(data, dict) else {}
     except Exception:
@@ -78,7 +78,7 @@ def _strip_frontmatter(content: str) -> str:
     """Remove YAML frontmatter from content."""
     match = _FRONTMATTER_RE.match(content)
     if match:
-        return content[match.end():]
+        return content[match.end() :]
     return content
 
 

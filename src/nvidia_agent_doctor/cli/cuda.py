@@ -21,9 +21,9 @@ def check(
 ) -> None:
     """Check CUDA installation and configuration."""
     from nvidia_agent_doctor.analyzers.environment import analyze_cuda
-    from nvidia_agent_doctor.reports.terminal import _render_section
-    from nvidia_agent_doctor.reports.json_report import render_json
     from nvidia_agent_doctor.core.result import DiagnosticReport
+    from nvidia_agent_doctor.reports.json_report import render_json
+    from nvidia_agent_doctor.reports.terminal import _render_section
 
     console = Console()
     section = analyze_cuda()
@@ -36,5 +36,6 @@ def check(
         _render_section(section, console)
         if verbose and section.metadata.get("cuda_info"):
             import json
+
             console.print("\n[dim]Full CUDA info:[/dim]")
             console.print(json.dumps(section.metadata["cuda_info"], indent=2, default=str))
