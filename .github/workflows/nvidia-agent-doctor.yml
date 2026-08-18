@@ -1,0 +1,128 @@
+name: NVIDIA Agent Doctor
+
+# Reusable workflow for NVIDIA Agent Doctor diagnostics.
+# Standard GitHub-hosted runners DO NOT have NVIDIA GPUs.
+# GPU-specific checks require self-hosted runners with NVIDIA hardware.
+#
+# Usage example in your project:
+#
+# jobs:
+#   diagnose:
+#     uses: your-org/nvidia-agent-doctor/.github/workflows/nvidia-agent-doctor.yml@main
+#     with:
+#       gpu_required: false
+
+on:
+  workflow_call:
+    inputs:
+      gpu_required:
+        description: "Fail if no GPU is detected"
+        type: boolean
+        default: false
+      python_version:
+        description: "Python version to use"
+        type: string
+        default: "3.11"
+      skills_path:
+        description: "Path to scan for agent skills (leave empty to skip)"
+        type: string
+        default: ""
+      mcp_config_path:
+        description: "Path to MCP config file (leave empty to skip)"
+        type: string
+        default: ""
+      report_format:
+        description: "Report format: terminal, json, markdown, html"
+        type: string
+        default: "json"
+    outputs:
+      health_score:
+        description: "Overall health score (0-100)"
+        value: ${{ jobs.diagnose.outputs.health_score }}
+      exit_code:
+        description: "Exit code (0=healthy, 1=warnings, 2=errors, 3=security)"
+        value: ${{ jobs.diagnose.outputs.exit_code }}
+
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    name: NVIDIA Agent Doctor
+    runs-on: ubuntu-latest
+    outputs:
+      health_score: ${{ steps.parse_report.outputs.health_score }}
+      exit_code: ${{ steps.run_doctor.outputs.exit_code }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ inputs.python_version || '3.11' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python_version || '3.11' }}
+
+      - name: Install NVIDIA Agent Doctor
+        run: pip install nvidia-agent-doctor
+
+      - name: Run nad doctor
+        id: run_doctor
+        run: |
+          nad doctor --json > nad-report.json || EXIT_CODE=$?
+          EXIT_CODE=${EXIT_CODE:-0}
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          echo "Doctor exit code: $EXIT_CODE"
+
+      - name: Parse health score
+        id: parse_report
+        run: |
+          SCORE=$(python -c "
+          import json
+          with open('nad-report.json') as f:
+              data = json.load(f)
+          # Calculate score from sections
+          scores = []
+          for section in data.get('sections', {}).values():
+              checks = section.get('checks', [])
+              scoreable = [c for c in checks if c['severity'] not in ['NOT_INSTALLED', 'NOT_APPLICABLE', 'UNKNOWN']]
+              if scoreable:
+                  penalty = sum(20 if c['severity'] == 'ERROR' else 5 if c['severity'] == 'WARNING' else 0 for c in scoreable)
+                  max_penalty = len(scoreable) * 20
+                  scores.append(max(0, round(100 - (penalty / max_penalty) * 100)) if max_penalty > 0 else 100)
+          print(round(sum(scores) / len(scores)) if scores else 100)
+          ")
+          echo "health_score=$SCORE" >> $GITHUB_OUTPUT
+          echo "Health score: $SCORE"
+
+      - name: Run security scan
+        run: nad security scan --json > nad-security.json || true
+
+      - name: Scan skills
+        if: ${{ inputs.skills_path != '' }}
+        run: nad skills scan "${{ inputs.skills_path }}" --json > nad-skills.json || true
+
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: nad-reports
+          path: |
+            nad-report.json
+            nad-security.json
+            nad-skills.json
+          if-no-files-found: ignore
+
+      - name: Fail if GPU required but not found
+        if: ${{ inputs.gpu_required == true }}
+        run: |
+          GPU_STATUS=$(python -c "
+          import json
+          with open('nad-report.json') as f:
+              data = json.load(f)
+          gpu_section = data.get('sections', {}).get('gpu', {})
+          checks = gpu_section.get('checks', [])
+          not_installed = any(c['severity'] == 'NOT_INSTALLED' for c in checks)
+          print('not_installed' if not_installed else 'detected')
+          ")
+          if [ "$GPU_STATUS" == "not_installed" ]; then
+            echo "ERROR: GPU required but not detected."
+            exit 2
+          fi

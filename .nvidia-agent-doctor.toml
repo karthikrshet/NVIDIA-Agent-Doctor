@@ -1,0 +1,30 @@
+[doctor]
+# strict = true marks optional-not-found as WARNING instead of NOT_INSTALLED
+strict = false
+
+[security]
+enabled = true
+# credential_scan = true
+
+[benchmark]
+enabled = false
+# warmup_runs = 3
+# benchmark_runs = 10
+
+[openshell]
+enabled = true
+
+[mcp]
+enabled = true
+# config_paths = ["~/.mcp/config.json", ".mcp.json"]
+
+[skills]
+enabled = true
+# scan_depth = 3
+
+[report]
+# default_format = "terminal"
+# output_dir = "."
+
+[logging]
+# level = "INFO"
