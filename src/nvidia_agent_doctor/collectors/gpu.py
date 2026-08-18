@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 
 from defusedxml import ElementTree
@@ -28,6 +29,8 @@ def collect_gpu_info() -> list[GPUInfo] | None:
 
 def nvidia_smi_available() -> bool:
     """Check if nvidia-smi is accessible."""
+    if shutil.which("nvidia-smi") is None:
+        return False
     try:
         result = subprocess.run(
             ["nvidia-smi", "--version"], capture_output=True, text=True, timeout=10

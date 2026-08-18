@@ -51,12 +51,21 @@ class TestNvidiaSmiAvailable:
     def test_available_when_command_succeeds(self) -> None:
         mock_result = MagicMock()
         mock_result.returncode = 0
-        with patch("subprocess.run", return_value=mock_result):
-            assert nvidia_smi_available() is True
+        with patch("nvidia_agent_doctor.collectors.gpu.shutil.which", return_value="nvidia-smi"):
+            with patch("subprocess.run", return_value=mock_result):
+                assert nvidia_smi_available() is True
 
     def test_not_available_when_command_fails(self) -> None:
-        with patch("subprocess.run", side_effect=FileNotFoundError):
-            assert nvidia_smi_available() is False
+        with patch("nvidia_agent_doctor.collectors.gpu.shutil.which", return_value="nvidia-smi"):
+            with patch("subprocess.run", side_effect=FileNotFoundError):
+                assert nvidia_smi_available() is False
+
+    def test_not_available_when_binary_is_not_on_path(self) -> None:
+        with patch("nvidia_agent_doctor.collectors.gpu.shutil.which", return_value=None):
+            with patch("subprocess.run") as run:
+                assert nvidia_smi_available() is False
+
+        run.assert_not_called()
 
 
 class TestCollectGpuInfo:
