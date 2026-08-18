@@ -32,3 +32,6 @@ by TensorRT release.
 
 Save the command output and attach it to an issue or release validation record
 after removing any locally sensitive paths or metadata.
+
+Record only sanitized, evidence-backed fixtures. The current fixture inventory
+and capture rules are in [`tests/fixtures/recorded_hardware`](../tests/fixtures/recorded_hardware/README.md).

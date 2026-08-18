@@ -1,0 +1,19 @@
+{
+  "provenance": {
+    "kind": "sanitized-real-hardware-capture",
+    "captured_on": "2026-08-19",
+    "collector": "nvidia-smi -q --xml-format and --query-gpu=index,compute_cap",
+    "sanitization": "GPU UUID, PCI bus identifier, timestamp, host information, and dynamic utilization values were omitted."
+  },
+  "gpu_count": 1,
+  "gpus": [
+    {
+      "index": 0,
+      "name": "NVIDIA GeForce RTX 3050 Laptop GPU",
+      "driver_version": "511.65",
+      "cuda_version": "11.6",
+      "vram_total_mb": 4096,
+      "compute_capability": "8.6"
+    }
+  ]
+}
