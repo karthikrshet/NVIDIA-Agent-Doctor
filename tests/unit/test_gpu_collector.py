@@ -114,3 +114,34 @@ class TestCollectGpuInfo:
             assert result is not None
             assert len(result) == 1
             assert result[0].name == "NVIDIA GeForce RTX 4090"
+
+    def test_supplements_missing_compute_capability_from_query(
+        self, nvidia_smi_xml_one_gpu: str
+    ) -> None:
+        xml_without_compute_capability = nvidia_smi_xml_one_gpu.replace(
+            "<compute_capability>\n            <major>8</major>\n            <minor>9</minor>\n        </compute_capability>\n",
+            "",
+        )
+        query_result = MagicMock(returncode=0, stdout="0, 8.9\n")
+        with patch(
+            "nvidia_agent_doctor.collectors.gpu._run_nvidia_smi_xml",
+            return_value=xml_without_compute_capability,
+        ):
+            with patch(
+                "nvidia_agent_doctor.collectors.gpu.subprocess.run", return_value=query_result
+            ) as run:
+                result = collect_gpu_info()
+
+        assert result is not None
+        assert result[0].compute_capability == "8.9"
+        run.assert_called_once_with(
+            [
+                "nvidia-smi",
+                "--query-gpu=index,compute_cap",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )

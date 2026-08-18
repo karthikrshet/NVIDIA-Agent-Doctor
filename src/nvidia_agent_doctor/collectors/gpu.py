@@ -21,7 +21,8 @@ def collect_gpu_info() -> list[GPUInfo] | None:
         return None
 
     try:
-        return _parse_nvidia_smi_xml(xml_output)
+        gpus = _parse_nvidia_smi_xml(xml_output)
+        return _supplement_compute_capabilities(gpus)
     except Exception:
         # Fallback to query mode
         return _collect_via_query()
@@ -163,6 +164,45 @@ def _collect_via_query() -> list[GPUInfo] | None:
         return gpus or None
     except Exception:
         return None
+
+
+def _supplement_compute_capabilities(gpus: list[GPUInfo]) -> list[GPUInfo]:
+    """Fill XML omissions with a single documented nvidia-smi query.
+
+    Some older driver XML schemas omit ``compute_capability`` even though the
+    installed query interface supports ``compute_cap``. Query only when needed
+    so normal modern XML collection remains a single subprocess call.
+    """
+    if not any(gpu.compute_capability is None for gpu in gpus):
+        return gpus
+    try:
+        result = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=index,compute_cap",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        return gpus
+    if result.returncode != 0:
+        return gpus
+
+    compute_by_index: dict[int, str] = {}
+    for line in result.stdout.splitlines():
+        index_text, separator, compute_capability = line.partition(",")
+        index = _safe_int(index_text.strip())
+        value = compute_capability.strip()
+        if separator and index is not None and value not in {"", "N/A"}:
+            compute_by_index[index] = value
+    for gpu in gpus:
+        if gpu.compute_capability is None:
+            gpu.compute_capability = compute_by_index.get(gpu.index)
+    return gpus
 
 
 # ── Parsing helpers ────────────────────────────────────────────────────────────
