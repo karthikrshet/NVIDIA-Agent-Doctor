@@ -26,6 +26,19 @@ def gpu_info(
     console = Console()
 
     if not nvidia_smi_available():
+        if json_output:
+            import json
+
+            typer.echo(
+                json.dumps(
+                    {
+                        "available": False,
+                        "gpus": [],
+                        "reason": "nvidia-smi is unavailable",
+                    }
+                )
+            )
+            return
         console.print("[yellow]nvidia-smi not available.[/yellow]")
         console.print(
             "[dim]Possible reasons: no NVIDIA GPU, driver not installed, "
@@ -35,13 +48,24 @@ def gpu_info(
 
     gpus = collect_gpu_info()
     if not gpus:
+        if json_output:
+            import json
+
+            typer.echo(json.dumps({"available": True, "gpus": [], "reason": "no GPUs detected"}))
+            return
         console.print("[yellow]No NVIDIA GPUs detected.[/yellow]")
         return
 
     if json_output:
         import json
 
-        typer.echo(json.dumps([g.model_dump() for g in gpus], indent=2, default=str))
+        typer.echo(
+            json.dumps(
+                {"available": True, "gpus": [g.model_dump() for g in gpus]},
+                indent=2,
+                default=str,
+            )
+        )
         return
 
     for gpu in gpus:

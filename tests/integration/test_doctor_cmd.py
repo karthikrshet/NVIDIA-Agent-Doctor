@@ -76,6 +76,17 @@ class TestGPUCommand:
             result = runner.invoke(app, ["gpu", "info"])
             assert result.exit_code == 0  # graceful
 
+    def test_gpu_info_json_no_gpu_is_valid(self) -> None:
+        with patch("nvidia_agent_doctor.collectors.gpu.nvidia_smi_available", return_value=False):
+            result = runner.invoke(app, ["gpu", "info", "--json"])
+
+        assert result.exit_code == 0
+        assert json.loads(result.output) == {
+            "available": False,
+            "gpus": [],
+            "reason": "nvidia-smi is unavailable",
+        }
+
     def test_gpu_info_with_mock_gpu(self, nvidia_smi_xml_one_gpu: str) -> None:
         """gpu info with mocked GPU data should show GPU name."""
         with patch(

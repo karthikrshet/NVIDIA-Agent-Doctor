@@ -12,7 +12,10 @@ from nvidia_agent_doctor.core.models import DockerInfo
 def collect_docker_info() -> DockerInfo:
     """Collect Docker runtime information. Never raises."""
     docker_available, docker_version, docker_server = _check_docker_cli()
-    nvidia_runtime = _check_nvidia_runtime()
+    # Runtime discovery requires a reachable daemon. Do not launch a second,
+    # relatively expensive ``docker info`` probe when version discovery has
+    # already shown that only the client is available.
+    nvidia_runtime = _check_nvidia_runtime() if docker_available and docker_server else False
     in_container, container_id = _detect_container()
 
     return DockerInfo(
