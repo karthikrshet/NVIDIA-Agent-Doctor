@@ -123,6 +123,7 @@ nad doctor                     # Full environment diagnostic
 nad doctor --json              # Machine-readable JSON output
 nad doctor --verbose           # Detailed output
 nad doctor --fix               # Show remediation suggestions
+nad doctor --auto-resolve      # Generate a review-only remediation plan
 nad doctor --quiet             # Minimal output (CI-friendly)
 ```
 
@@ -242,6 +243,8 @@ nvidia-agent-doctor/
 - ✅ **Read-only by default** — `nad doctor` never modifies your system
 
 **Secret redaction:** Terminal, JSON, Markdown, HTML, MCP arguments, URLs, metadata, and handled exception messages pass through the same redaction boundary. The `nad security leak-check` command runs deterministic local regression probes; it is not a proof that every possible secret format is detectable.
+
+**Remediation:** `nad doctor --auto-resolve` generates a platform-aware plan for human review. It never installs packages, changes drivers, or executes shell commands automatically.
 
 **Heuristic security scanning:** The skills and MCP scanners use heuristic static analysis. They can produce false positives and false negatives. All findings require human review.
 

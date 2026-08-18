@@ -55,6 +55,14 @@ class TestDoctorCommand:
             # Quiet output should be shorter
             assert len(result_quiet.output) <= len(result_verbose.output) + 200
 
+    def test_doctor_auto_resolve_json_is_review_only(self) -> None:
+        with patch("nvidia_agent_doctor.collectors.gpu.nvidia_smi_available", return_value=False):
+            result = runner.invoke(app, ["doctor", "--json", "--auto-resolve"])
+
+        assert result.exit_code in (0, 1, 2, 3)
+        plan = json.loads(result.output)["remediation_plan"]
+        assert all(step["status"] == "manual-review-required" for step in plan)
+
     def test_version_flag(self) -> None:
         """--version should show version info."""
         result = runner.invoke(app, ["--version"])

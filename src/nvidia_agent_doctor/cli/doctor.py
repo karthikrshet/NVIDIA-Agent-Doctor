@@ -27,6 +27,11 @@ def doctor(
     ),
     no_color: bool = typer.Option(False, "--no-color", help="Disable colors."),
     profile: bool = typer.Option(False, "--profile", help="Record local check durations."),
+    auto_resolve: bool = typer.Option(
+        False,
+        "--auto-resolve",
+        help="Generate a review-only remediation plan; never runs changes automatically.",
+    ),
 ) -> None:
     """
     Run a complete, safe read-only environment diagnostic.
@@ -40,6 +45,10 @@ def doctor(
     # Suppress progress output when JSON mode is active to avoid mixing text with JSON
     _quiet = quiet or json_output
     report = _run_doctor(console, verbose=verbose, quiet=_quiet, profile=profile)
+    if auto_resolve:
+        from nvidia_agent_doctor.core.remediation import build_remediation_plan
+
+        report.remediation_plan = build_remediation_plan(report)
 
     if json_output:
         from nvidia_agent_doctor.reports.json_report import render_json
@@ -52,6 +61,9 @@ def doctor(
 
     if fix:
         _show_fix_suggestions(report, console)
+
+    if auto_resolve and not json_output:
+        _show_remediation_plan(report, console)
 
     sys.exit(report.exit_code)
 
@@ -389,3 +401,16 @@ def _show_fix_suggestions(report: DiagnosticReport, console: Console) -> None:
             console.print(
                 "  [yellow]Manual application required — copy and run the command above.[/yellow]"
             )
+
+
+def _show_remediation_plan(report: DiagnosticReport, console: Console) -> None:
+    """Show a safe, non-executing remediation plan."""
+    console.print("\n[bold]Review-only remediation plan[/bold]")
+    if not report.remediation_plan:
+        console.print("[green]No actionable remediation steps were identified.[/green]")
+        return
+    for step in report.remediation_plan:
+        console.print(f"\n  {step['component']}: {step['reason']}")
+        console.print(f"  [yellow]-> {step.get('suggested_action') or step.get('recommendation')}[/yellow]")
+        if step.get("command"):
+            console.print(f"  [cyan]Manual command: {step['command']}[/cyan]")

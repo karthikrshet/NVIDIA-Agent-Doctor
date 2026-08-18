@@ -109,6 +109,7 @@ class DiagnosticReport(BaseModel):
     sections: dict[str, SectionResult] = Field(default_factory=dict)
     security_findings: list[SecurityFinding] = Field(default_factory=list)
     recommendations: list[str] = Field(default_factory=list)
+    remediation_plan: list[dict[str, Any]] = Field(default_factory=list)
 
     @property
     def overall_score(self) -> int:
