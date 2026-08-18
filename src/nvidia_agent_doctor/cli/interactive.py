@@ -29,7 +29,9 @@ def interactive() -> None:
     }
     while True:
         console.print("\n[bold]NVIDIA Agent Doctor — Interactive Console[/bold]")
-        console.print("[dim]All checks are local and read-only. No telemetry or benchmarks are run.[/dim]")
+        console.print(
+            "[dim]All checks are local and read-only. No telemetry or benchmarks are run.[/dim]"
+        )
         for key, label in actions.items():
             console.print(f"  {key}. {label}")
         choice = typer.prompt("Select", default="0").strip()

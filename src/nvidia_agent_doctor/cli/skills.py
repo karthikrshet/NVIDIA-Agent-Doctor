@@ -121,7 +121,9 @@ def scan(
 @app.command("verify")
 def verify(
     skill: Path = typer.Argument(..., help="Path to the SKILL.md file."),
-    signature: Path | None = typer.Option(None, "--signature", help="Detached SHA-256 digest file."),
+    signature: Path | None = typer.Option(
+        None, "--signature", help="Detached SHA-256 digest file."
+    ),
     json_output: bool = typer.Option(False, "--json"),
 ) -> None:
     """Verify a local detached digest and validate a SKILLCARD.yaml manifest."""

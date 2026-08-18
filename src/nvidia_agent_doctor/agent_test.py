@@ -89,7 +89,9 @@ def run_agent_preflight(
             checks.append(
                 {
                     "kind": "mcp-endpoint",
-                    "status": "PASS" if parsed.scheme in {"http", "https"} and parsed.netloc else "WARNING",
+                    "status": "PASS"
+                    if parsed.scheme in {"http", "https"} and parsed.netloc
+                    else "WARNING",
                     "name": server.name,
                     "evidence": "Endpoint syntax checked locally; no network request was made.",
                 }
@@ -107,10 +109,10 @@ def run_agent_preflight(
     failures = any(check["status"] == "ERROR" for check in checks)
     warnings = any(check["status"] == "WARNING" for check in checks)
     response: dict[str, Any] = {
-            "mode": "static-preflight",
-            "executed": False,
-            "checks": checks,
-            "exit_code": 3 if has_high_risk_finding else 2 if failures else 1 if warnings else 0,
-            "limitations": "This does not start an agent loop, invoke MCP servers, call a model, or prove runtime interoperability.",
+        "mode": "static-preflight",
+        "executed": False,
+        "checks": checks,
+        "exit_code": 3 if has_high_risk_finding else 2 if failures else 1 if warnings else 0,
+        "limitations": "This does not start an agent loop, invoke MCP servers, call a model, or prove runtime interoperability.",
     }
     return cast(dict[str, Any], redact_data(response))

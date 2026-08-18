@@ -42,7 +42,11 @@ def discover_mcp_servers(
             # Configuration is untrusted input.  A scanner should not follow
             # a symlink supplied through a config path or read arbitrarily
             # large files during a normal diagnostic invocation.
-            if path.is_symlink() or not path.is_file() or path.stat().st_size > _MAX_MCP_CONFIG_BYTES:
+            if (
+                path.is_symlink()
+                or not path.is_file()
+                or path.stat().st_size > _MAX_MCP_CONFIG_BYTES
+            ):
                 continue
             resolved = path.resolve(strict=True)
             if resolved in seen:

@@ -24,8 +24,15 @@ def verify_skill(skill_path: Path, signature_path: Path | None = None) -> dict[s
         "skillcard": {"status": "missing"},
         "verified": False,
     }
-    if skill_path.is_symlink() or not skill_path.is_file() or skill_path.stat().st_size > _MAX_FILE_BYTES:
-        result["integrity"] = {"status": "invalid", "reason": "Skill must be a regular file under 8 MiB."}
+    if (
+        skill_path.is_symlink()
+        or not skill_path.is_file()
+        or skill_path.stat().st_size > _MAX_FILE_BYTES
+    ):
+        result["integrity"] = {
+            "status": "invalid",
+            "reason": "Skill must be a regular file under 8 MiB.",
+        }
         return result
 
     signature = signature_path or skill_path.with_name("skill.sig")
@@ -34,7 +41,10 @@ def verify_skill(skill_path: Path, signature_path: Path | None = None) -> dict[s
     else:
         expected = signature.read_text(encoding="ascii", errors="ignore").strip().split()[0]
         if not _SHA256.fullmatch(expected):
-            result["integrity"] = {"status": "invalid", "reason": "skill.sig must contain one SHA-256 digest."}
+            result["integrity"] = {
+                "status": "invalid",
+                "reason": "skill.sig must contain one SHA-256 digest.",
+            }
         else:
             actual = hashlib.sha256(skill_path.read_bytes()).hexdigest()
             result["integrity"] = {

@@ -13,7 +13,9 @@ from nvidia_agent_doctor.agent_test import run_agent_preflight
 
 def test_agent(
     skills_directory: Path = typer.Argument(Path("."), help="Directory containing SKILL.md files."),
-    mcp_config: list[str] = typer.Option([], "--mcp-config", help="Additional MCP configuration files."),
+    mcp_config: list[str] = typer.Option(
+        [], "--mcp-config", help="Additional MCP configuration files."
+    ),
     json_output: bool = typer.Option(False, "--json"),
 ) -> None:
     """Safely preflight agent inputs without executing tools or network calls."""
@@ -29,7 +31,9 @@ def test_agent(
         typer.echo(json.dumps(result, indent=2))
     else:
         console = Console()
-        console.print("Agent workflow static preflight (no tools, servers, or models were executed).")
+        console.print(
+            "Agent workflow static preflight (no tools, servers, or models were executed)."
+        )
         for check in result["checks"]:
             console.print(f"{check['status']}: {check['kind']} — {check['evidence']}")
         console.print(f"Exit code: {result['exit_code']}")

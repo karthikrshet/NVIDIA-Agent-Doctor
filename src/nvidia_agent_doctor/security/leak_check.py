@@ -46,5 +46,8 @@ def run_leak_check() -> dict[str, Any]:
         "terminal": terminal.getvalue(),
         "exception": redact_text(f"request failed: API_KEY={_SENTINEL}"),
     }
-    checks = [{"boundary": name, "passed": _SENTINEL not in value and REDACTED in value} for name, value in outputs.items()]
+    checks = [
+        {"boundary": name, "passed": _SENTINEL not in value and REDACTED in value}
+        for name, value in outputs.items()
+    ]
     return {"passed": all(check["passed"] for check in checks), "checks": checks}

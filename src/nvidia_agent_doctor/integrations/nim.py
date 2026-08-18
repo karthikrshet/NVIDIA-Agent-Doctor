@@ -66,7 +66,9 @@ def _readiness_url(endpoint: str) -> str | None:
     return urlunsplit((parsed.scheme, parsed.netloc, path, "", ""))
 
 
-def _get_json(endpoint: str, timeout_seconds: int) -> tuple[dict[str, Any] | None, float | None, str | None]:
+def _get_json(
+    endpoint: str, timeout_seconds: int
+) -> tuple[dict[str, Any] | None, float | None, str | None]:
     """Fetch a loopback JSON endpoint with a strict response-size bound."""
     request = Request(endpoint, method="GET")  # noqa: S310 - caller supplies validated loopback URL
     started = time.perf_counter()
@@ -76,7 +78,11 @@ def _get_json(endpoint: str, timeout_seconds: int) -> tuple[dict[str, Any] | Non
         if len(raw) > _MAX_RESPONSE_BYTES:
             return None, None, "Response exceeded the 1 MiB safety limit."
         payload = json.loads(raw.decode("utf-8")) if raw else {}
-        return payload if isinstance(payload, dict) else None, round((time.perf_counter() - started) * 1000, 2), None
+        return (
+            payload if isinstance(payload, dict) else None,
+            round((time.perf_counter() - started) * 1000, 2),
+            None,
+        )
     except (OSError, TimeoutError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         return None, None, redact_text(str(exc))
 
@@ -87,4 +93,8 @@ def _model_ids(payload: dict[str, Any] | None) -> list[str]:
     models = payload.get("data", [])
     if not isinstance(models, list):
         return []
-    return [str(model["id"]) for model in models if isinstance(model, dict) and isinstance(model.get("id"), str)][:50]
+    return [
+        str(model["id"])
+        for model in models
+        if isinstance(model, dict) and isinstance(model.get("id"), str)
+    ][:50]

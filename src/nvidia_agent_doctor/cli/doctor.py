@@ -202,7 +202,9 @@ def _run_doctor(
             "Profile (ms): "
             + ", ".join(
                 f"{name}={duration}"
-                for name, duration in sorted(profile_entries.items(), key=lambda item: item[1], reverse=True)
+                for name, duration in sorted(
+                    profile_entries.items(), key=lambda item: item[1], reverse=True
+                )
             )
         )
     _add_optional_section(
@@ -444,7 +446,9 @@ def _show_remediation_plan(report: DiagnosticReport, console: Console) -> None:
         return
     for step in report.remediation_plan:
         console.print(f"\n  {step['component']}: {step['reason']}")
-        console.print(f"  [yellow]-> {step.get('suggested_action') or step.get('recommendation')}[/yellow]")
+        console.print(
+            f"  [yellow]-> {step.get('suggested_action') or step.get('recommendation')}[/yellow]"
+        )
         if step.get("command"):
             console.print(f"  [cyan]Manual command: {step['command']}[/cyan]")
 

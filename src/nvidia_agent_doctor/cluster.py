@@ -47,7 +47,9 @@ def scan_cluster(allow_cluster_access: bool = False) -> dict[str, Any]:
                 "status": "ok",
                 "cluster_accessed": True,
                 "nodes": nodes,
-                "gpu_operator": _parse_operator_pods(operator_result) if operator_result else {"detected": False},
+                "gpu_operator": _parse_operator_pods(operator_result)
+                if operator_result
+                else {"detected": False},
             }
         ),
     )

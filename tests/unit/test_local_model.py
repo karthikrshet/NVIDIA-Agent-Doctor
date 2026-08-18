@@ -37,7 +37,9 @@ def test_local_model_uses_valid_loopback_response() -> None:
     response.read.return_value = b'{"response": "Review CUDA_HOME before changing it."}'
     context = MagicMock()
     context.__enter__.return_value = response
-    with patch("nvidia_agent_doctor.integrations.local_model.urlopen", return_value=context) as request:
+    with patch(
+        "nvidia_agent_doctor.integrations.local_model.urlopen", return_value=context
+    ) as request:
         result = explain_with_ollama(
             DiagnosticReport(),
             model="llama3.2",

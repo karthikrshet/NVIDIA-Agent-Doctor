@@ -19,7 +19,10 @@ def report_default(ctx: typer.Context) -> None:
 @app.command("generate")
 def generate(
     format: str = typer.Option(
-        "terminal", "--format", "-f", help="Output format: terminal, json, markdown, html, compliance-audit"
+        "terminal",
+        "--format",
+        "-f",
+        help="Output format: terminal, json, markdown, html, compliance-audit",
     ),
     output: Path | None = typer.Option(
         None, "--output", "-o", help="Output file path (default: stdout for text formats)"

@@ -43,7 +43,11 @@ def build_remediation_plan(report: DiagnosticReport) -> list[dict[str, Any]]:
 def _cuda_environment_guidance() -> str:
     system = platform.system()
     if system == "Windows":
-        return "Set CUDA_PATH in System Properties after confirming the installed toolkit directory."
+        return (
+            "Set CUDA_PATH in System Properties after confirming the installed toolkit directory."
+        )
     if system == "Darwin":
         return "Set CUDA_HOME in your shell profile only after confirming the installed toolkit directory."
-    return "Set CUDA_HOME in your shell profile only after confirming the installed toolkit directory."
+    return (
+        "Set CUDA_HOME in your shell profile only after confirming the installed toolkit directory."
+    )

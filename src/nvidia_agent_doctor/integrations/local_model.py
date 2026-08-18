@@ -58,7 +58,11 @@ def explain_with_ollama(
 
 def _is_loopback_ollama_endpoint(endpoint: str) -> bool:
     parsed = urlsplit(endpoint)
-    return parsed.scheme == "http" and parsed.hostname in _LOOPBACK_HOSTS and parsed.path == "/api/generate"
+    return (
+        parsed.scheme == "http"
+        and parsed.hostname in _LOOPBACK_HOSTS
+        and parsed.path == "/api/generate"
+    )
 
 
 def _build_prompt(report: DiagnosticReport) -> str:

@@ -29,7 +29,11 @@ def collect_cuda_info(nvidia_smi_available: bool | None = None) -> CUDAInfo:
     nvcc_available = nvcc_path is not None
     toolkit_version = _detect_toolkit_version(nvcc_path, cuda_home, cuda_path)
 
-    smi_available = shutil.which("nvidia-smi") is not None if nvidia_smi_available is None else nvidia_smi_available
+    smi_available = (
+        shutil.which("nvidia-smi") is not None
+        if nvidia_smi_available is None
+        else nvidia_smi_available
+    )
     runtime_version = _detect_runtime_version(smi_available)
     driver_version = _detect_driver_cuda_version(smi_available)
 
