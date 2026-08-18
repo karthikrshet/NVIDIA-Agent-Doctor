@@ -97,25 +97,15 @@ jobs:
         working-directory: target-repository
 
       - name: Run security scan
-        run: nad security scan --json > nad-security.json || true
+        run: nad security scan --json > nad-security.json
         working-directory: target-repository
 
       - name: Scan skills
         if: ${{ inputs.skills_path != '' }}
         env:
           SKILLS_PATH: ${{ inputs.skills_path }}
-        run: nad skills scan "$SKILLS_PATH" --json > nad-skills.json || true
+        run: nad skills scan "$SKILLS_PATH" --json > nad-skills.json
         working-directory: target-repository
-
-      - name: Upload reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: nad-reports
-          path: |
-            target-repository/nad-report.json
-            target-repository/nad-security.json
-            target-repository/nad-skills.json
-          if-no-files-found: ignore
 
       - name: Fail if GPU required but not found
         if: ${{ inputs.gpu_required == true }}

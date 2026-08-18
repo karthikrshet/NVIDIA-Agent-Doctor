@@ -37,3 +37,22 @@ after removing any locally sensitive paths or metadata.
 
 Record only sanitized, evidence-backed fixtures. The current fixture inventory
 and capture rules are in [`tests/fixtures/recorded_hardware`](../tests/fixtures/recorded_hardware/README.md).
+
+## Manual GitHub Actions validation
+
+The repository includes a manually dispatched **NVIDIA Hardware Validation**
+workflow at [`.github/workflows/gpu-validation.yml`](../.github/workflows/gpu-validation.yml).
+It only targets a trusted self-hosted runner labelled `gpu`; GitHub-hosted
+runners do not provide NVIDIA hardware. It runs the real hardware tests, core
+GPU/CUDA commands, a bounded measured GPU benchmark, and validates the JSON
+doctor report.
+
+The workflow has read-only repository permissions, runs only through
+`workflow_dispatch`, does not retain checkout credentials, and deliberately
+does not upload reports or artifacts. A missing GPU, missing PyTorch CUDA
+runtime, absent measured benchmark result, or an unexpected diagnostic failure
+fails the workflow rather than being reported as a successful validation.
+
+Before enabling it, configure a dedicated, patched Linux GPU runner with only
+trusted maintainers able to dispatch workflows. Review any local reports and
+commit only sanitized fixtures; do not upload host-specific diagnostic output.

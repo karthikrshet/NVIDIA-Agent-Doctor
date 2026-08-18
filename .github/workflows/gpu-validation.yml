@@ -1,0 +1,99 @@
+name: NVIDIA Hardware Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      python-version:
+        description: Python version used to execute validation
+        required: true
+        default: "3.11"
+        type: choice
+        options:
+          - "3.11"
+          - "3.12"
+      max-memory-mb:
+        description: Bounded GPU benchmark allocation (16-1024 MiB)
+        required: true
+        default: "128"
+        type: string
+      timeout-seconds:
+        description: Bounded GPU benchmark timeout (1-300 seconds)
+        required: true
+        default: "15"
+        type: string
+
+# This workflow is intentionally manual and requires a runner explicitly
+# labelled `gpu`. It never runs untrusted pull-request code on a GPU host.
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate real NVIDIA hardware
+    runs-on: [self-hosted, linux, x64, gpu]
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out source without retaining credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+          cache: pip
+
+      - name: Install the checked-out project and test tools
+        run: python -m pip install --disable-pip-version-check -e ".[dev]"
+
+      - name: Validate GPU inventory and local runtime evidence
+        run: |
+          set -euo pipefail
+          nvidia-smi -L
+          pytest tests/hardware -m gpu -v --tb=short
+
+          run_diagnostic() {
+            set +e
+            "$@"
+            status=$?
+            set -e
+            if [ "$status" -gt 1 ]; then
+              echo "Unexpected diagnostic exit code $status: $*"
+              exit "$status"
+            fi
+          }
+
+          run_diagnostic nad gpu info
+          run_diagnostic nad gpu health
+          run_diagnostic nad cuda check
+          run_diagnostic nad compatibility check
+
+      - name: Run a bounded, measured GPU benchmark
+        env:
+          NAD_BENCHMARK_MAX_MEMORY_MB: ${{ inputs.max-memory-mb }}
+          NAD_BENCHMARK_TIMEOUT_SECONDS: ${{ inputs.timeout-seconds }}
+        run: |
+          set -euo pipefail
+          nad benchmark run --gpu-only --yes --json \
+            --max-memory-mb "$NAD_BENCHMARK_MAX_MEMORY_MB" \
+            --timeout-seconds "$NAD_BENCHMARK_TIMEOUT_SECONDS" > nad-gpu-benchmark.json
+          python -c "import json; data = json.load(open('nad-gpu-benchmark.json', encoding='utf-8')); assert 'gpu_basic' in data, 'GPU benchmark produced no measured GPU result'"
+
+      - name: Produce a machine-readable diagnostic report
+        run: |
+          set -euo pipefail
+          set +e
+          nad doctor --json > nad-gpu-doctor.json
+          status=$?
+          set -e
+          python -m json.tool nad-gpu-doctor.json > /dev/null
+          if [ "$status" -gt 1 ]; then
+            echo "Unexpected doctor exit code: $status"
+            exit "$status"
+          fi
+
+# Reports are deliberately not uploaded. Hardware reports may contain host
+# metadata; retain them only within the trusted runner or publish sanitized
+# fixtures after manual review.
