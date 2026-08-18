@@ -19,6 +19,13 @@ def check_file_permissions(path: Path) -> dict[str, Any]:
         "mode": None,
         "findings": [],
     }
+    # POSIX mode bits are not an ACL security signal on Windows. In particular,
+    # Python may report S_IWOTH for ordinary files, while effective access is
+    # governed by NTFS ACLs. Do not emit an invalid chmod remediation.
+    if os.name == "nt":
+        result["supported"] = False
+        return result
+
     try:
         st = path.stat()
         result["exists"] = True
@@ -96,6 +103,9 @@ def is_running_as_root() -> bool:
     import ctypes
 
     try:
-        return bool(ctypes.windll.shell32.IsUserAnAdmin())
+        windll = cast(Any, getattr(ctypes, "windll", None))  # noqa: B009
+        if windll is None:
+            return False
+        return bool(windll.shell32.IsUserAnAdmin())
     except Exception:
         return False

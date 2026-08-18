@@ -55,7 +55,7 @@ def scan(
             )
             if verbose:
                 table.add_row("", f"[dim]{finding.description}[/dim]", "")
-                table.add_row("", f"[yellow]→ {finding.recommendation}[/yellow]", "")
+                table.add_row("", f"[yellow]-> {finding.recommendation}[/yellow]", "")
 
         console.print(table)
 

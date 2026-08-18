@@ -59,10 +59,10 @@ def _render_section_md(section: SectionResult) -> list[str]:
     sev = section.overall_severity
     icon = {
         "PASS": "✅",
-        "WARNING": "⚠️",
+        "WARNING": "WARNING",
         "ERROR": "❌",
         "NOT_INSTALLED": "➖",
-        "NOT_APPLICABLE": "·",
+        "NOT_APPLICABLE": "N/A",
         "UNKNOWN": "❓",
     }.get(sev.value, "")
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from html import escape
+
 from nvidia_agent_doctor.core.result import DiagnosticReport
 
 _SEVERITY_COLORS = {
@@ -33,6 +35,10 @@ _SEC_COLORS = {
 
 def render_html(report: DiagnosticReport) -> str:
     """Generate a self-contained HTML report."""
+
+    def esc(value: object) -> str:
+        return escape(str(value), quote=True)
+
     score = report.overall_score
     score_color = "#22c55e" if score >= 90 else "#f59e0b" if score >= 70 else "#ef4444"
     ts = report.timestamp.strftime("%Y-%m-%d %H:%M:%S")
@@ -46,22 +52,22 @@ def render_html(report: DiagnosticReport) -> str:
         for check in section.checks:
             c_color = _SEVERITY_COLORS.get(check.severity.value, "#9ca3af")
             c_icon = _SEVERITY_ICONS.get(check.severity.value, "?")
-            detail = check.detail or ""
+            detail = esc(check.detail or "")
             rec = (
-                f'<br><span class="rec">→ {check.recommendation}</span>'
+                f'<br><span class="rec">-&gt; {esc(check.recommendation)}</span>'
                 if check.recommendation
                 else ""
             )
             checks_rows += f"""
             <tr>
-                <td>{check.name}</td>
+                <td>{esc(check.name)}</td>
                 <td><span class="badge" style="background:{c_color}">{c_icon} {check.severity.value}</span></td>
-                <td>{check.message}<br><small style="color:#9ca3af">{detail}</small>{rec}</td>
+                <td>{esc(check.message)}<br><small style="color:#9ca3af">{detail}</small>{rec}</td>
             </tr>"""
 
         sections_html += f"""
         <div class="section">
-            <h2><span style="color:{color}">{icon}</span> {section.display_name}</h2>
+            <h2><span style="color:{color}">{icon}</span> {esc(section.display_name)}</h2>
             <table>
                 <thead><tr><th>Check</th><th>Status</th><th>Details</th></tr></thead>
                 <tbody>{checks_rows}</tbody>
@@ -70,7 +76,7 @@ def render_html(report: DiagnosticReport) -> str:
 
     recs_html = ""
     for rec in report.all_recommendations[:20]:
-        recs_html += f"<li>{rec}</li>"
+        recs_html += f"<li>{esc(rec)}</li>"
 
     findings_html = ""
     all_findings = list(report.security_findings)
@@ -81,9 +87,9 @@ def render_html(report: DiagnosticReport) -> str:
         findings_html += f"""
         <div class="finding">
             <span class="badge" style="background:{color}">{finding.severity.value}</span>
-            <strong>{finding.title}</strong>
-            <p>{finding.description}</p>
-            <p><em>Recommendation: {finding.recommendation}</em></p>
+            <strong>{esc(finding.title)}</strong>
+            <p>{esc(finding.description)}</p>
+            <p><em>Recommendation: {esc(finding.recommendation)}</em></p>
         </div>"""
 
     return f"""<!DOCTYPE html>
@@ -138,7 +144,7 @@ def render_html(report: DiagnosticReport) -> str:
     <header>
         <h1>🩺 NVIDIA Agent Doctor</h1>
         <p>Independent Open-Source Diagnostic Toolkit</p>
-        <p style="margin-top:0.25rem">Generated: {ts} &nbsp;|&nbsp; Version: {report.tool.version}</p>
+        <p style="margin-top:0.25rem">Generated: {esc(ts)} &nbsp;|&nbsp; Version: {esc(report.tool.version)}</p>
     </header>
 
     <div class="score-card">
@@ -169,8 +175,8 @@ def render_html(report: DiagnosticReport) -> str:
     {"<div class='section'><h2>💡 Recommendations</h2><ol>" + recs_html + "</ol></div>" if recs_html else ""}
 
     <footer>
-        <p>{report.tool.disclaimer}</p>
-        <p>{report.tool.privacy}</p>
+        <p>{esc(report.tool.disclaimer)}</p>
+        <p>{esc(report.tool.privacy)}</p>
     </footer>
 </div>
 </body>

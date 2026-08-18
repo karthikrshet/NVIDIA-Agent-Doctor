@@ -45,12 +45,9 @@ def scan(
         console.print(f"[red]Directory not found: {directory}[/red]")
         raise typer.Exit(code=1)
 
-    console.print(f"[dim]Scanning {directory.resolve()} (depth={depth})...[/dim]\n")
+    if not json_output:
+        console.print(f"[dim]Scanning {directory.resolve()} (depth={depth})...[/dim]\n")
     results = scan_skills_directory(directory, max_depth=depth)
-
-    if not results:
-        console.print("[dim]No SKILL.md files found.[/dim]")
-        return
 
     if json_output:
         import json
@@ -69,6 +66,10 @@ def scan(
             typer.echo(json.dumps({"skills": output, "risk_graph": graph.to_dict()}, indent=2))
         else:
             typer.echo(json.dumps(output, indent=2))
+        return
+
+    if not results:
+        console.print("[dim]No SKILL.md files found.[/dim]")
         return
 
     # Summary table
@@ -100,7 +101,7 @@ def scan(
                 sev = finding["severity"]
                 console.print(f"  [{sev.color}]{sev.value}[/{sev.color}] {finding['title']}")
                 console.print(f"    {finding['description']}")
-                console.print(f"    [yellow]→ {finding['recommendation']}[/yellow]")
+                console.print(f"    [yellow]-> {finding['recommendation']}[/yellow]")
 
     if risk_graph:
         graph = SkillRiskGraph(results)

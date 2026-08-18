@@ -47,11 +47,11 @@ class Severity(StrEnum):
     def icon(self) -> str:
         """Returns a terminal icon for this severity level."""
         icons = {
-            Severity.PASS: "✓",
-            Severity.WARNING: "⚠",
-            Severity.ERROR: "✗",
-            Severity.NOT_INSTALLED: "–",
-            Severity.NOT_APPLICABLE: "·",
+            Severity.PASS: "OK",
+            Severity.WARNING: "WARN",
+            Severity.ERROR: "ERROR",
+            Severity.NOT_INSTALLED: "-",
+            Severity.NOT_APPLICABLE: "N/A",
             Severity.UNKNOWN: "?",
         }
         return icons[self]

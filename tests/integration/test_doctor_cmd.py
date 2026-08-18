@@ -99,3 +99,16 @@ class TestSecurityCommand:
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert "sections" in data
+
+
+class TestMachineReadableSubcommands:
+    def test_mcp_json_is_valid_when_no_configuration_exists(self) -> None:
+        result = runner.invoke(app, ["mcp", "scan", "--json"])
+        assert result.exit_code == 0
+        assert json.loads(result.output) == []
+
+    def test_skills_json_has_no_progress_text(self) -> None:
+        result = runner.invoke(app, ["skills", "scan", "examples/skills", "--json"])
+        assert result.exit_code == 0
+        payload = json.loads(result.output)
+        assert isinstance(payload, list)

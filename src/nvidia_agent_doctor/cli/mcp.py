@@ -29,11 +29,6 @@ def scan(
     console = Console()
     servers = discover_mcp_servers(extra_paths=config_path if config_path else None)
 
-    if not servers:
-        console.print("[dim]No MCP server configurations found.[/dim]")
-        console.print("[dim]Searched: ~/.mcp/config.json, ~/.mcp.json, ./.mcp.json[/dim]")
-        return
-
     if json_output:
         import json
 
@@ -47,6 +42,11 @@ def scan(
                 }
             )
         typer.echo(json.dumps(result, indent=2))
+        return
+
+    if not servers:
+        console.print("[dim]No MCP server configurations found.[/dim]")
+        console.print("[dim]Searched: ~/.mcp/config.json, ~/.mcp.json, ./.mcp.json[/dim]")
         return
 
     console.print(f"\n[bold]Found {len(servers)} MCP server(s)[/bold]\n")
@@ -80,7 +80,7 @@ def scan(
                 sev = finding["severity"]
                 console.print(f"  [{sev.color}]{sev.value}[/{sev.color}] {finding['title']}")
                 console.print(f"    {finding['description']}")
-                console.print(f"    [yellow]→ {finding['recommendation']}[/yellow]")
+                console.print(f"    [yellow]-> {finding['recommendation']}[/yellow]")
 
     console.print(
         "\n[dim]Note: MCP security analysis is heuristic. Verify all findings manually.[/dim]"

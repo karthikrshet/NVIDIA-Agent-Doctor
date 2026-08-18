@@ -133,22 +133,22 @@ class SkillRiskGraph:
         lines = ["Agent Risk Graph", "=" * 40]
         lines.append("Agent")
         for result in self.results:
-            prefix = "├──" if result is not self.results[-1] else "└──"
+            prefix = "+--" if result is not self.results[-1] else "`--"
             lines.append(f" {prefix} Skill: {result.skill.name} [{result.risk_level.value}]")
             if result.skill.file_patterns:
-                lines.append(" │     └── filesystem access")
+                lines.append(" |     `-- filesystem access")
             if result.skill.network_patterns or any(
                 "curl" in c for c in result.skill.shell_commands
             ):
-                lines.append(" │     └── network access")
+                lines.append(" |     `-- network access")
             if result.skill.credential_references:
-                lines.append(" │     └── credential references")
+                lines.append(" |     `-- credential references")
 
         if self.high_risk_edges:
             lines.append("")
             lines.append("Cross-Skill Risk Paths:")
             for edge in self.high_risk_edges:
-                lines.append(f"  [{edge.severity.value}] {edge.source} → {edge.target}")
+                lines.append(f"  [{edge.severity.value}] {edge.source} -> {edge.target}")
                 lines.append(f"    {edge.description}")
 
         return "\n".join(lines)

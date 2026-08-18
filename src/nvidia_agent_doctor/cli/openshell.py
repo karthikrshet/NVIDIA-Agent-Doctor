@@ -60,12 +60,12 @@ def diagnose(
     total = 0
     for label, value in checks:
         if value is True:
-            status = "[green]✓[/green]"
+            status = "[green]OK[/green]"
             score += 1
         elif value is False:
-            status = "[yellow]⚠[/yellow]"
+            status = "[yellow]WARN[/yellow]"
         elif value is None:
-            status = "[dim]–[/dim]"
+            status = "[dim]-[/dim]"
         else:
             status = "[dim]?[/dim]"
         if value is not None:

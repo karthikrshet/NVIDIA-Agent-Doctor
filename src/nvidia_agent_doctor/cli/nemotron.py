@@ -42,16 +42,16 @@ def check(
     table.add_column("Status")
 
     table.add_row(
-        "NeMo Installed", "[green]✓[/green]" if nem.get("nemo_installed") else "[dim]–[/dim]"
+        "NeMo Installed", "[green]OK[/green]" if nem.get("nemo_installed") else "[dim]-[/dim]"
     )
     if nem.get("nemo_version"):
         table.add_row("NeMo Version", nem["nemo_version"])
     table.add_row(
-        "NIM Available", "[green]✓[/green]" if nem.get("nim_available") else "[dim]–[/dim]"
+        "NIM Available", "[green]OK[/green]" if nem.get("nim_available") else "[dim]-[/dim]"
     )
-    table.add_row("NGC CLI", "[green]✓[/green]" if nem.get("ngc_cli") else "[dim]–[/dim]")
+    table.add_row("NGC CLI", "[green]OK[/green]" if nem.get("ngc_cli") else "[dim]-[/dim]")
     table.add_row(
-        "NemoClaw Installed", "[green]✓[/green]" if claw.get("installed") else "[dim]–[/dim]"
+        "NemoClaw Installed", "[green]OK[/green]" if claw.get("installed") else "[dim]-[/dim]"
     )
     if claw.get("version"):
         table.add_row("NemoClaw Version", claw["version"])

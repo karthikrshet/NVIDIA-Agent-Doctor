@@ -41,10 +41,10 @@ def check(
     table.add_column("Status")
 
     table.add_row(
-        "NemoClaw Installed", "[green]✓[/green]" if claw.get("installed") else "[dim]–[/dim]"
+        "NemoClaw Installed", "[green]OK[/green]" if claw.get("installed") else "[dim]-[/dim]"
     )
     table.add_row(
-        "CLI Available", "[green]✓[/green]" if claw.get("cli_available") else "[dim]–[/dim]"
+        "CLI Available", "[green]OK[/green]" if claw.get("cli_available") else "[dim]-[/dim]"
     )
     if claw.get("version"):
         table.add_row("Version", claw["version"])

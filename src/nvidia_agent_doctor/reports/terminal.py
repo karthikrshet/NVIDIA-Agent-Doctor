@@ -130,7 +130,7 @@ def _render_check_line(check: CheckResult, console: Console, indent: str = "") -
         console.print(f"{indent}   [dim]{check.detail}[/dim]")
 
     if check.recommendation:
-        console.print(f"{indent}   [yellow]→ {check.recommendation}[/yellow]")
+        console.print(f"{indent}   [yellow]-> {check.recommendation}[/yellow]")
 
 
 def _render_summary(report: DiagnosticReport, console: Console) -> None:
@@ -143,16 +143,16 @@ def _render_summary(report: DiagnosticReport, console: Console) -> None:
     # Score bar
     if score >= 90:
         score_color = "bold green"
-        bar_char = "█"
+        bar_char = "#"
     elif score >= 70:
         score_color = "bold yellow"
-        bar_char = "█"
+        bar_char = "#"
     else:
         score_color = "bold red"
-        bar_char = "█"
+        bar_char = "#"
 
     bar_filled = round(score / 5)
-    bar = bar_char * bar_filled + "░" * (20 - bar_filled)
+    bar = bar_char * bar_filled + "." * (20 - bar_filled)
 
     summary = Table(box=None, show_header=False, padding=(0, 1))
     summary.add_column("", style="bold")
