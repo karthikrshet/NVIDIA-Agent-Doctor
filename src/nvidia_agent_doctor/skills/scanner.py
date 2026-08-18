@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
@@ -158,6 +159,20 @@ def scan_skill(skill: SkillInfo) -> SkillScanResult:
     return result
 
 
+def _deduplicate_skill_paths(paths: Iterable[Path]) -> list[Path]:
+    """Return stable, case-insensitive unique skill paths.
+
+    macOS's default filesystem is usually case-insensitive.  On that platform
+    both ``rglob(\"SKILL.md\")`` and ``rglob(\"skill.md\")`` can discover the
+    same file while preserving the different spelling in the returned paths.
+    Deduplicating by ``Path`` alone therefore scans one skill twice.
+    """
+    unique_paths: dict[str, Path] = {}
+    for path in paths:
+        unique_paths.setdefault(str(path.absolute()).casefold(), path)
+    return [unique_paths[key] for key in sorted(unique_paths)]
+
+
 def scan_skills_directory(
     directory: Path,
     max_depth: int = 3,
@@ -168,8 +183,9 @@ def scan_skills_directory(
     """
     results: list[SkillScanResult] = []
 
-    pattern_files = list(directory.rglob("SKILL.md")) + list(directory.rglob("skill.md"))
-    pattern_files = sorted(set(pattern_files))
+    pattern_files = _deduplicate_skill_paths(
+        list(directory.rglob("SKILL.md")) + list(directory.rglob("skill.md"))
+    )
 
     for skill_file in pattern_files:
         if skill_file.is_symlink():

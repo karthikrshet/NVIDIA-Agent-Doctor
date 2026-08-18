@@ -6,7 +6,11 @@ from pathlib import Path
 
 from nvidia_agent_doctor.core.severity import SecuritySeverity
 from nvidia_agent_doctor.skills.parser import parse_skill_file
-from nvidia_agent_doctor.skills.scanner import scan_skill, scan_skills_directory
+from nvidia_agent_doctor.skills.scanner import (
+    _deduplicate_skill_paths,
+    scan_skill,
+    scan_skills_directory,
+)
 
 
 class TestSkillParser:
@@ -42,6 +46,12 @@ class TestSkillParser:
 
 
 class TestSkillScanner:
+    def test_case_variant_paths_are_deduplicated(self, tmp_path: Path) -> None:
+        """Avoid duplicate scans on case-insensitive filesystems such as macOS."""
+        paths = [tmp_path / "SKILL.md", tmp_path / "skill.md"]
+
+        assert _deduplicate_skill_paths(paths) == [paths[0]]
+
     def test_dangerous_skill_gets_high_risk(
         self, tmp_path: Path, sample_skill_dangerous: str
     ) -> None:
