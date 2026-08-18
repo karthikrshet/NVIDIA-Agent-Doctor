@@ -139,6 +139,7 @@ nad cuda check --verbose       # With environment details
 nad openshell diagnose         # OpenShell runtime diagnostics
 nad nemotron check             # Nemotron / NeMo detection
 nad nemotron nim --allow-local-request --json  # Read-only local NIM readiness check
+nad nemotron nim --allow-local-request --models # Also list served local NIM model IDs
 ```
 
 ### Security & Analysis

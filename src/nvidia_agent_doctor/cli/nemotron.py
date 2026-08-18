@@ -67,6 +67,7 @@ def nim(
         "--allow-local-request",
         help="Allow a read-only request to the validated local NIM readiness endpoint.",
     ),
+    models: bool = typer.Option(False, "--models", help="Also query the local NIM model-list endpoint."),
     json_output: bool = typer.Option(False, "--json"),
 ) -> None:
     """Check a local NVIDIA NIM readiness endpoint without sending inference."""
@@ -74,7 +75,7 @@ def nim(
 
     from nvidia_agent_doctor.integrations.nim import check_local_nim
 
-    result = check_local_nim(endpoint, allow_request=allow_local_request)
+    result = check_local_nim(endpoint, allow_request=allow_local_request, include_models=models)
     if json_output:
         typer.echo(json.dumps(result, indent=2))
     else:
