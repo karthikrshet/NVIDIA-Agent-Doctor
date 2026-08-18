@@ -148,6 +148,7 @@ nad mcp scan --config ./mcp.json  # With explicit config path
 nad skills scan ./skills/      # Scan agent skills directory
 nad skills scan . --risk-graph # Include cross-skill risk graph
 nad skills verify ./SKILL.md   # Verify detached SHA-256 digest + SKILLCARD.yaml
+nad test-agent ./skills --json # Static agent/MCP wiring preflight; executes nothing
 nad compatibility check        # Cross-component compatibility
 ```
 
@@ -303,6 +304,7 @@ jobs:
 - OpenShell, NemoClaw, and Nemotron detection is **heuristic** — results vary by installation method
 - Skills scanner is **static analysis only** — cannot detect runtime behavior
 - MCP scanner analyzes configuration, not live server behavior
+- `nad test-agent` is a static preflight: it never starts an MCP server, invokes a skill, or calls a model
 - `nad skills verify` supports a detached SHA-256 digest and local SKILLCARD schema validation. A digest provides integrity, not publisher authentication; OpenSSF/OMS public-key verification is not currently implemented.
 - The readiness report is not a compliance certification or an assessment against a named framework
 - Benchmark results are hardware and workload specific — not directly comparable across systems

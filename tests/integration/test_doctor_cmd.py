@@ -125,6 +125,14 @@ class TestMachineReadableSubcommands:
         payload = json.loads(result.output)
         assert isinstance(payload, list)
 
+    def test_agent_preflight_json_is_machine_readable(self) -> None:
+        result = runner.invoke(app, ["test-agent", "examples/skills", "--json"])
+
+        assert result.exit_code == 0
+        payload = json.loads(result.output)
+        assert payload["mode"] == "static-preflight"
+        assert payload["executed"] is False
+
 
 def test_invalid_config_returns_exit_code_four(tmp_path: Path) -> None:
     config = tmp_path / "invalid.toml"
