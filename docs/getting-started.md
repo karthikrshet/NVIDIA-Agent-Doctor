@@ -61,9 +61,11 @@ nad security scan
 nad skills scan ./skills/
 ```
 
-## Next Steps
+## Limitations
 
-- [Architecture](architecture.md)
-- [GPU Diagnostics](gpu.md)
-- [CUDA Diagnostics](cuda.md)
-- [Security Analysis](security.md)
+OpenShell, NemoClaw, Nemotron, NIM, TensorRT, and Triton checks are optional
+detection or heuristic checks unless a command explicitly reports completed local
+validation. They do not establish workload correctness or vendor support.
+
+The skills and MCP scanners are static, heuristic reviews—not malware detection.
+Use them as one input to human security review.

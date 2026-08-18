@@ -89,8 +89,8 @@ Recommendations:
 | Agent Skills scanner | ✅ v0.1 |
 | Cross-skill risk graph | ✅ v0.1 |
 | Nemotron / NeMo detection | ✅ v0.1 (heuristic) |
-| TensorRT diagnostics | ✅ v0.1 |
-| Benchmark engine | ✅ v0.1 (opt-in) |
+| TensorRT detection | ✅ v0.1 (optional import heuristic) |
+| Bounded benchmark engine | ✅ v0.1 (opt-in; measurement only) |
 | GitHub Action | ✅ v0.1 |
 | HTML dashboard | 🔜 v0.5 |
 | Plugin system | 🔜 v0.4 |

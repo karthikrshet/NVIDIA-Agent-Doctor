@@ -27,14 +27,6 @@ on:
         description: "Path to scan for agent skills (leave empty to skip)"
         type: string
         default: ""
-      mcp_config_path:
-        description: "Path to MCP config file (leave empty to skip)"
-        type: string
-        default: ""
-      report_format:
-        description: "Report format: terminal, json, markdown, html"
-        type: string
-        default: "json"
     outputs:
       health_score:
         description: "Overall health score (0-100)"
@@ -52,6 +44,8 @@ jobs:
     outputs:
       health_score: ${{ steps.parse_report.outputs.health_score }}
       exit_code: ${{ steps.run_doctor.outputs.exit_code }}
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -61,8 +55,8 @@ jobs:
         with:
           python-version: ${{ inputs.python_version || '3.11' }}
 
-      - name: Install NVIDIA Agent Doctor
-        run: pip install nvidia-agent-doctor
+      - name: Install checked-out NVIDIA Agent Doctor
+        run: pip install -e .
 
       - name: Run nad doctor
         id: run_doctor
@@ -98,7 +92,9 @@ jobs:
 
       - name: Scan skills
         if: ${{ inputs.skills_path != '' }}
-        run: nad skills scan "${{ inputs.skills_path }}" --json > nad-skills.json || true
+        env:
+          SKILLS_PATH: ${{ inputs.skills_path }}
+        run: nad skills scan "$SKILLS_PATH" --json > nad-skills.json || true
 
       - name: Upload reports
         uses: actions/upload-artifact@v4

@@ -12,8 +12,10 @@
 
 If you discover a security vulnerability in NVIDIA Agent Doctor, please do **not** file a public GitHub issue. Instead, report it privately via:
 
-- **Email:** security@nvidia-agent-doctor (placeholder — replace with actual contact)
-- **GitHub Security Advisories:** Use the "Report a vulnerability" button on the repository
+- **GitHub Security Advisories:** Use the repository's **Report a vulnerability** button.
+
+Do not include credentials, private keys, or customer data. Maintainers will establish
+a private follow-up channel after acknowledging a report.
 
 We will acknowledge receipt within **48 hours** and provide a fix timeline within **7 days** for critical issues.
 
