@@ -5,8 +5,8 @@ Thank you for your interest in contributing! 🎉
 ## Getting Started
 
 1. Fork the repository
-2. Clone your fork: `git clone https://github.com/karthikrshet/nvidia-agent-doctor.git`
-3. Install in dev mode: `pip install -e ".[dev]"`
+2. Clone your fork: `git clone https://github.com/karthikrshet/NVIDIA-Agent-Doctor.git`
+3. Install in dev mode: `python -m pip install -e ".[dev]"`
 4. Run tests: `pytest tests/ -m "not gpu"`
 
 ## Development Workflow

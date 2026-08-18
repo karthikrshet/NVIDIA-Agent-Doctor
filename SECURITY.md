@@ -23,12 +23,20 @@ We will acknowledge receipt within **48 hours** and provide a fix timeline withi
 
 ## Threat Model
 
-NVIDIA Agent Doctor is a **local, read-only diagnostic tool**. It does not:
+NVIDIA Agent Doctor is a **local, read-only diagnostic tool by default**. It does not:
 
 - Run a server or expose network ports
-- Transmit data to any remote service
+- Transmit data to a remote service during normal diagnostics
 - Store credentials or secrets
 - Modify system configuration (without explicit user confirmation)
+
+The following network-capable actions require a separate explicit opt-in flag:
+
+- `nad doctor --ai-explain --allow-model-request` contacts a validated loopback Ollama endpoint with redacted diagnostic evidence.
+- `nad nemotron nim --allow-local-request` contacts a validated loopback NIM readiness endpoint.
+- `nad cluster scan --allow-cluster-access` uses fixed, read-only `kubectl` queries against the user's configured cluster context.
+
+These paths reject remote endpoints where applicable, do not print credentials, and are never run by `nad doctor`.
 
 ### What we protect against
 
@@ -103,7 +111,7 @@ Do not treat NVIDIA Agent Doctor as a complete security solution. Use it as one 
 ## Privacy
 
 - **No telemetry** — Nothing is transmitted automatically
-- **No cloud upload** — All analysis is local
+- **No cloud upload by default** — Normal diagnostics are local; the explicit cluster scan queries only the configured Kubernetes API context
 - **No secret storage** — Secrets are redacted in memory before any output
 - **No source code upload** — The tool never reads or transmits your source code
 
