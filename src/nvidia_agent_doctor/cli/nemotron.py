@@ -57,32 +57,3 @@ def check(
         table.add_row("NemoClaw Version", claw["version"])
 
     console.print(table)
-
-
-@app.command("benchmark")
-def benchmark(
-    confirm: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation."),
-) -> None:
-    """
-    Run a Nemotron inference benchmark (opt-in, requires NeMo installation).
-
-    This command will allocate GPU memory and run inference. It is never run
-    automatically during `nad doctor`.
-    """
-    console = Console()
-
-    if not confirm:
-        confirmed = typer.confirm(
-            "Nemotron benchmark will use GPU memory and run inference. Proceed?",
-            default=False,
-        )
-        if not confirmed:
-            console.print("[dim]Benchmark cancelled.[/dim]")
-            return
-
-    console.print(
-        "[dim]Nemotron benchmark requires NeMo to be installed and a model configured.[/dim]"
-    )
-    console.print("[dim]To run: configure a model path in .nvidia-agent-doctor.toml[/dim]")
-    console.print("\n[yellow]Nemotron benchmark not yet available in this version.[/yellow]")
-    console.print("[dim]See roadmap in README for v0.3 timeline.[/dim]")

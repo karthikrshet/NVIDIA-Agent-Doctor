@@ -137,7 +137,6 @@ nad cuda check                 # CUDA installation check
 nad cuda check --verbose       # With environment details
 nad openshell diagnose         # OpenShell runtime diagnostics
 nad nemotron check             # Nemotron / NeMo detection
-nad nemotron benchmark --yes   # Opt-in Nemotron benchmark
 ```
 
 ### Security & Analysis
