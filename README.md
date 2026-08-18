@@ -150,6 +150,8 @@ nad skills scan ./skills/      # Scan agent skills directory
 nad skills scan . --risk-graph # Include cross-skill risk graph
 nad skills verify ./SKILL.md   # Verify detached SHA-256 digest + SKILLCARD.yaml
 nad test-agent ./skills --json # Static agent/MCP wiring preflight; executes nothing
+nad cluster scan               # Inspect local kubectl availability only
+nad cluster scan --allow-cluster-access --json  # Explicit read-only cluster query
 nad compatibility check        # Cross-component compatibility
 ```
 
@@ -247,6 +249,8 @@ nvidia-agent-doctor/
 **Remediation:** `nad doctor --auto-resolve` generates a platform-aware plan for human review. It never installs packages, changes drivers, or executes shell commands automatically.
 
 **Interactive mode:** `nad interactive` is a keyboard-driven Rich console for running the existing local doctor, GPU, CUDA, and security checks. It is not a live telemetry dashboard and does not run benchmarks.
+
+**Cluster mode:** `nad cluster scan` does not contact Kubernetes unless `--allow-cluster-access` is provided. When explicitly enabled, it uses read-only fixed `kubectl` queries for node readiness, GPU capacity, and NVIDIA GPU Operator pod phases; it does not print kubeconfig contents or credentials.
 
 **Heuristic security scanning:** The skills and MCP scanners use heuristic static analysis. They can produce false positives and false negatives. All findings require human review.
 

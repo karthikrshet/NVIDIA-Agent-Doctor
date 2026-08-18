@@ -99,6 +99,7 @@ def main(
 
 from nvidia_agent_doctor.cli import agent_test as _agent_test_mod  # noqa: E402
 from nvidia_agent_doctor.cli import benchmark as _bench_mod  # noqa: E402
+from nvidia_agent_doctor.cli import cluster as _cluster_mod  # noqa: E402
 from nvidia_agent_doctor.cli import compatibility as _compat_mod  # noqa: E402
 from nvidia_agent_doctor.cli import cuda as _cuda_mod  # noqa: E402
 from nvidia_agent_doctor.cli import doctor as _doctor_mod  # noqa: E402
@@ -124,5 +125,6 @@ app.add_typer(_report_mod.app, name="report")
 app.add_typer(_osh_mod.app, name="openshell")
 app.add_typer(_nem_mod.app, name="nemotron")
 app.add_typer(_claw_mod.app, name="nemoclaw")
+app.add_typer(_cluster_mod.app, name="cluster")
 app.command("test-agent")(_agent_test_mod.test_agent)
 app.command("interactive")(_interactive_mod.interactive)
