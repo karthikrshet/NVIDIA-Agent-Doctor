@@ -171,10 +171,18 @@ class DiagnosticReport(BaseModel):
         self.sections[section.name] = section
 
     def to_json_dict(self) -> dict[str, Any]:
-        """Return a JSON-serializable dict with secrets redacted."""
+        """Return a JSON-serializable report with canonical derived summary values."""
         from nvidia_agent_doctor.security.credentials import redact_data
 
-        return cast(dict[str, Any], redact_data(self.model_dump(mode="json")))
+        data = self.model_dump(mode="json")
+        data["summary"] = {
+            "overall_score": self.overall_score,
+            "total_warnings": self.total_warnings,
+            "total_errors": self.total_errors,
+            "total_security_findings": self.total_security_findings,
+            "exit_code": self.exit_code,
+        }
+        return cast(dict[str, Any], redact_data(data))
 
     def redacted_copy(self) -> DiagnosticReport:
         """Return a safe copy suitable for any output format."""

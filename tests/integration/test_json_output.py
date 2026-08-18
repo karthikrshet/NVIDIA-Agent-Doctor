@@ -42,6 +42,18 @@ class TestJsonOutput:
         assert "sections" in data
         assert "gpu" in data["sections"]
 
+    def test_contains_canonical_summary(self) -> None:
+        report = self._make_report()
+        data = json.loads(render_json(report))
+
+        assert data["summary"] == {
+            "overall_score": 100,
+            "total_warnings": 0,
+            "total_errors": 0,
+            "total_security_findings": 0,
+            "exit_code": 0,
+        }
+
     def test_contains_timestamp(self) -> None:
         report = self._make_report()
         data = json.loads(render_json(report))
