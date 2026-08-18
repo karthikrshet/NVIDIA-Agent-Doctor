@@ -10,6 +10,13 @@ from pathlib import Path
 
 from nvidia_agent_doctor.core.models import CUDAInfo
 
+# NVIDIA's CUDA Compatibility Guide publishes these minimum driver major
+# versions for minor-version compatibility. Keep this small, sourced table at
+# the major-family level; exact release compatibility remains an NVIDIA matrix
+# lookup and is not guessed here.
+_MIN_DRIVER_MAJOR_BY_CUDA_MAJOR = {"11": 450, "12": 525, "13": 580}
+_CUDA_COMPATIBILITY_URL = "https://docs.nvidia.com/deploy/cuda-compatibility/"
+
 
 def collect_cuda_info() -> CUDAInfo:
     """Collect CUDA installation details from environment and filesystem. Never raises."""
@@ -215,6 +222,26 @@ def _check_compatibility(
                 "release notes for your specific combination."
             )
             return False, notes
+
+    cuda_version = toolkit or runtime
+    if cuda_version and driver:
+        cuda_major = _major_version(cuda_version)
+        required_driver = _MIN_DRIVER_MAJOR_BY_CUDA_MAJOR.get(cuda_major or "")
+        driver_major = _major_version(driver)
+        if required_driver and driver_major:
+            try:
+                if int(driver_major) < required_driver:
+                    notes.append(
+                        f"NVIDIA driver {driver} is below the documented minimum "
+                        f"{required_driver} for CUDA {cuda_major}.x minor-version compatibility. "
+                        f"See {_CUDA_COMPATIBILITY_URL}"
+                    )
+                    return False, notes
+            except ValueError:
+                notes.append(
+                    f"Could not parse NVIDIA driver version {driver}; verify it against "
+                    f"{_CUDA_COMPATIBILITY_URL}"
+                )
 
     compatible = not notes
     return compatible if (toolkit or runtime) else None, notes

@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from nvidia_agent_doctor.collectors.cuda import collect_cuda_info
 from nvidia_agent_doctor.collectors.docker import collect_docker_info
 from nvidia_agent_doctor.collectors.gpu import collect_gpu_info, nvidia_smi_available
 from nvidia_agent_doctor.collectors.system import collect_system_info
+from nvidia_agent_doctor.core.models import CUDAInfo, GPUInfo
 from nvidia_agent_doctor.core.result import CheckResult, SectionResult
 from nvidia_agent_doctor.core.severity import Severity
 
@@ -72,11 +75,15 @@ def analyze_system() -> SectionResult:
     return section
 
 
-def analyze_gpu() -> SectionResult:
+def analyze_gpu(
+    gpu_info: list[GPUInfo] | None = None,
+    smi_available: bool | None = None,
+) -> SectionResult:
     """Analyze NVIDIA GPU presence and health."""
     section = SectionResult(name="gpu", display_name="NVIDIA GPU")
 
-    if not nvidia_smi_available():
+    available = nvidia_smi_available() if smi_available is None else smi_available
+    if not available:
         section.checks.append(
             CheckResult(
                 name="nvidia_smi",
@@ -99,7 +106,7 @@ def analyze_gpu() -> SectionResult:
         )
     )
 
-    gpus = collect_gpu_info()
+    gpus = collect_gpu_info() if gpu_info is None else gpu_info
     if not gpus:
         section.checks.append(
             CheckResult(
@@ -174,10 +181,10 @@ def analyze_gpu() -> SectionResult:
     return section
 
 
-def analyze_cuda() -> SectionResult:
+def analyze_cuda(cuda_info: CUDAInfo | None = None) -> SectionResult:
     """Analyze CUDA installation."""
     section = SectionResult(name="cuda", display_name="CUDA")
-    info = collect_cuda_info()
+    info = collect_cuda_info() if cuda_info is None else cuda_info
     section.metadata["cuda_info"] = info.model_dump()
 
     if not info.nvcc_available and info.toolkit_version is None:
@@ -262,12 +269,12 @@ def analyze_cuda() -> SectionResult:
     return section
 
 
-def analyze_pytorch() -> SectionResult:
+def analyze_pytorch(pytorch_info: dict[str, Any] | None = None) -> SectionResult:
     """Analyze PyTorch installation."""
     from nvidia_agent_doctor.integrations.pytorch import check_pytorch
 
     section = SectionResult(name="pytorch", display_name="PyTorch")
-    info = check_pytorch()
+    info = check_pytorch() if pytorch_info is None else pytorch_info
     section.metadata["pytorch_info"] = info
 
     if not info["installed"]:

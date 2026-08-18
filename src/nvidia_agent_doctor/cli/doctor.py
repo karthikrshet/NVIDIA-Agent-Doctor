@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -25,6 +26,7 @@ def doctor(
         False, "--fix", help="Suggest safe remediation steps (requires confirmation)."
     ),
     no_color: bool = typer.Option(False, "--no-color", help="Disable colors."),
+    profile: bool = typer.Option(False, "--profile", help="Record local check durations."),
 ) -> None:
     """
     Run a complete, safe read-only environment diagnostic.
@@ -37,7 +39,7 @@ def doctor(
     console = Console(no_color=no_color)
     # Suppress progress output when JSON mode is active to avoid mixing text with JSON
     _quiet = quiet or json_output
-    report = _run_doctor(console, verbose=verbose, quiet=_quiet)
+    report = _run_doctor(console, verbose=verbose, quiet=_quiet, profile=profile)
 
     if json_output:
         from nvidia_agent_doctor.reports.json_report import render_json
@@ -58,6 +60,7 @@ def _run_doctor(
     console: Console,
     verbose: bool = False,
     quiet: bool = False,
+    profile: bool = False,
 ) -> DiagnosticReport:
     """Run all diagnostic checks and return a report."""
     from nvidia_agent_doctor.analyzers.compatibility import analyze_compatibility
@@ -69,27 +72,61 @@ def _run_doctor(
         analyze_system,
     )
     from nvidia_agent_doctor.analyzers.security import analyze_security
+    from nvidia_agent_doctor.collectors.cuda import collect_cuda_info
+    from nvidia_agent_doctor.collectors.gpu import collect_gpu_info, nvidia_smi_available
     from nvidia_agent_doctor.core.severity import Severity
     from nvidia_agent_doctor.integrations.nemotron import detect_nemotron
     from nvidia_agent_doctor.integrations.openshell import detect_openshell
+    from nvidia_agent_doctor.integrations.pytorch import check_pytorch
     from nvidia_agent_doctor.integrations.tensorrt import check_tensorrt
     from nvidia_agent_doctor.integrations.triton import check_triton
 
     report = DiagnosticReport()
 
+    # Share read-only hardware probes across sections. This keeps a default
+    # doctor run from repeatedly launching nvidia-smi or importing optional
+    # GPU runtimes solely for compatibility reporting.
+    probe_durations: dict[str, float] = {}
+
+    started = time.perf_counter()
+    smi_available = nvidia_smi_available()
+    probe_durations["nvidia-smi availability"] = round((time.perf_counter() - started) * 1000, 2)
+
+    started = time.perf_counter()
+    gpu_info = collect_gpu_info() if smi_available else []
+    probe_durations["GPU inventory"] = round((time.perf_counter() - started) * 1000, 2)
+
+    started = time.perf_counter()
+    cuda_info = collect_cuda_info()
+    probe_durations["CUDA discovery"] = round((time.perf_counter() - started) * 1000, 2)
+
+    started = time.perf_counter()
+    pytorch_info = check_pytorch()
+    probe_durations["PyTorch discovery"] = round((time.perf_counter() - started) * 1000, 2)
+
+    started = time.perf_counter()
+    tensorrt_info = check_tensorrt()
+    probe_durations["TensorRT discovery"] = round((time.perf_counter() - started) * 1000, 2)
+
     _checkers = [
         ("system", analyze_system, "System"),
-        ("gpu", analyze_gpu, "GPU"),
-        ("cuda", analyze_cuda, "CUDA"),
-        ("pytorch", analyze_pytorch, "PyTorch"),
+        ("gpu", lambda: analyze_gpu(gpu_info, smi_available), "GPU"),
+        ("cuda", lambda: analyze_cuda(cuda_info), "CUDA"),
+        ("pytorch", lambda: analyze_pytorch(pytorch_info), "PyTorch"),
         ("docker", analyze_docker, "Docker"),
         ("security", analyze_security, "Security"),
-        ("compatibility", analyze_compatibility, "Compatibility"),
+        (
+            "compatibility",
+            lambda: analyze_compatibility(gpu_info, cuda_info, pytorch_info, tensorrt_info),
+            "Compatibility",
+        ),
     ]
 
+    durations: dict[str, float] = {}
     for name, fn, display in _checkers:
         if not quiet:
             console.print(f"  [dim]Checking {display}...[/dim]", end="\r")
+        started = time.perf_counter()
         try:
             section = fn()
         except Exception as e:
@@ -103,14 +140,26 @@ def _run_doctor(
                 )
             )
         report.add_section(section)
+        if profile:
+            durations[name] = round((time.perf_counter() - started) * 1000, 2)
 
     # Optional component sections (NOT_INSTALLED is expected and fine)
     _add_optional_section(
-        report, "tensorrt", "TensorRT", lambda: _tensorrt_section(check_tensorrt()), quiet, console
+        report, "tensorrt", "TensorRT", lambda: _tensorrt_section(tensorrt_info), quiet, console
     )
     _add_optional_section(
         report, "triton", "Triton", lambda: _triton_section(check_triton()), quiet, console
     )
+
+    if profile:
+        profile_entries = {**probe_durations, **durations}
+        report.recommendations.append(
+            "Profile (ms): "
+            + ", ".join(
+                f"{name}={duration}"
+                for name, duration in sorted(profile_entries.items(), key=lambda item: item[1], reverse=True)
+            )
+        )
     _add_optional_section(
         report,
         "openshell",

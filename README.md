@@ -308,6 +308,10 @@ jobs:
 - Benchmark results are hardware and workload specific — not directly comparable across systems
 - This tool does not replace NVIDIA Nsight, dedicated security scanners, or official NVIDIA monitoring tools
 
+For evidence-based validation on an authorized GPU machine, follow the
+[hardware validation runbook](docs/hardware-validation.md). Hardware checks are
+blocked/skipped when `nvidia-smi` is unavailable; they are never simulated as a pass.
+
 ---
 
 ## Roadmap

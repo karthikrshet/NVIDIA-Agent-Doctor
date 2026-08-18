@@ -2,15 +2,23 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from nvidia_agent_doctor.collectors.cuda import collect_cuda_info
 from nvidia_agent_doctor.collectors.gpu import collect_gpu_info
+from nvidia_agent_doctor.core.models import CUDAInfo, GPUInfo
 from nvidia_agent_doctor.core.result import CheckResult, SectionResult
 from nvidia_agent_doctor.core.severity import Severity
 from nvidia_agent_doctor.integrations.pytorch import check_pytorch
 from nvidia_agent_doctor.integrations.tensorrt import check_tensorrt
 
 
-def analyze_compatibility() -> SectionResult:
+def analyze_compatibility(
+    gpu_info: list[GPUInfo] | None = None,
+    cuda_info: CUDAInfo | None = None,
+    pytorch_info: dict[str, Any] | None = None,
+    tensorrt_info: dict[str, Any] | None = None,
+) -> SectionResult:
     """
     Perform cross-component compatibility checks.
 
@@ -20,10 +28,10 @@ def analyze_compatibility() -> SectionResult:
     """
     section = SectionResult(name="compatibility", display_name="Compatibility")
 
-    gpu_info = collect_gpu_info()
-    cuda_info = collect_cuda_info()
-    pytorch_info = check_pytorch()
-    trt_info = check_tensorrt()
+    gpu_info = collect_gpu_info() if gpu_info is None else gpu_info
+    cuda_info = collect_cuda_info() if cuda_info is None else cuda_info
+    pytorch_info = check_pytorch() if pytorch_info is None else pytorch_info
+    trt_info = check_tensorrt() if tensorrt_info is None else tensorrt_info
 
     # GPU ↔ Driver: already checked in GPU analyzer
     section.checks.append(
