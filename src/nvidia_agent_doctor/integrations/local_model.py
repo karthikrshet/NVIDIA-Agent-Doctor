@@ -12,6 +12,7 @@ from nvidia_agent_doctor.security.credentials import redact_text
 
 _LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "::1"}
 _MAX_CONTEXT_CHARS = 20_000
+_MAX_RESPONSE_BYTES = 1_000_000
 
 
 def explain_with_ollama(
@@ -46,9 +47,20 @@ def explain_with_ollama(
     )
     try:
         with urlopen(request, timeout=timeout_seconds) as response:  # noqa: S310 - loopback validated above
-            payload = json.loads(response.read().decode("utf-8"))
-    except (OSError, TimeoutError, json.JSONDecodeError) as exc:
+            response_body = response.read(_MAX_RESPONSE_BYTES + 1)
+    except (OSError, TimeoutError) as exc:
         return {"status": "unavailable", "explanation": None, "error": redact_text(str(exc))}
+
+    if len(response_body) > _MAX_RESPONSE_BYTES:
+        return {
+            "status": "response_too_large",
+            "explanation": None,
+            "recommendation": "Configure the local model to return a shorter explanation.",
+        }
+    try:
+        payload = json.loads(response_body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        return {"status": "invalid_response", "explanation": None, "error": redact_text(str(exc))}
 
     explanation = payload.get("response") if isinstance(payload, dict) else None
     if not isinstance(explanation, str) or not explanation.strip():
@@ -62,6 +74,10 @@ def _is_loopback_ollama_endpoint(endpoint: str) -> bool:
         parsed.scheme == "http"
         and parsed.hostname in _LOOPBACK_HOSTS
         and parsed.path == "/api/generate"
+        and parsed.username is None
+        and parsed.password is None
+        and not parsed.query
+        and not parsed.fragment
     )
 
 

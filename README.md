@@ -251,7 +251,7 @@ nvidia-agent-doctor/
 
 **Remediation:** `nad doctor --auto-resolve` generates a platform-aware plan for human review. It never installs packages, changes drivers, or executes shell commands automatically.
 
-**Local AI explanation:** `nad doctor --ai-explain --model <name> --allow-model-request` can contact only a loopback Ollama `/api/generate` endpoint. Diagnostic evidence is redacted first; no cloud provider, API key, telemetry, or remote endpoint is used.
+**Local AI explanation:** `nad doctor --ai-explain --model <name> --allow-model-request` can contact only a loopback Ollama `/api/generate` endpoint. Diagnostic evidence is redacted first; credential-bearing URLs, query strings, remote endpoints, and model responses over 1 MB are rejected. No cloud provider, API key, or telemetry is used.
 
 **Interactive mode:** `nad interactive` is a keyboard-driven Rich console for running the existing local doctor, GPU, CUDA, and security checks. It is not a live telemetry dashboard and does not run benchmarks.
 
