@@ -88,5 +88,5 @@ def _state(value: bool | None) -> str:
 def _exit_for_result(result: dict[str, Any]) -> None:
     if result["status"] in {"probe_failed", "timeout", "no_gpu_detected"}:
         raise typer.Exit(code=1)
-    if result["status"] in {"invalid_image", "docker_daemon_unavailable"}:
+    if result["status"] in {"invalid_image", "invalid_timeout", "docker_daemon_unavailable"}:
         raise typer.Exit(code=2)

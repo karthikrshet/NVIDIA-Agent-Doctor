@@ -38,6 +38,9 @@ def check_docker_gpu(
         "gpus": [],
         "error": None,
     }
+    if not 1 <= timeout_seconds <= 30:
+        result.update(status="invalid_timeout", error="Timeout must be between 1 and 30 seconds.")
+        return result
     if not _IMAGE_REFERENCE.fullmatch(image):
         result.update(status="invalid_image", error="Image reference is not valid.")
         return result

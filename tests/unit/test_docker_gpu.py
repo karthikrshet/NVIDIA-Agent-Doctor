@@ -73,6 +73,12 @@ def test_docker_gpu_probe_rejects_invalid_image_references() -> None:
     assert result["status"] == "invalid_image"
 
 
+def test_docker_gpu_probe_rejects_out_of_range_timeout_before_docker_access() -> None:
+    result = check_docker_gpu(timeout_seconds=31)
+
+    assert result["status"] == "invalid_timeout"
+
+
 def test_docker_gpu_probe_ignores_malformed_inventory_lines() -> None:
     completed = CompletedProcess(args=[], returncode=0, stdout="not,csv\n", stderr="")
     with patch("nvidia_agent_doctor.integrations.docker_gpu.shutil.which", return_value="docker"):
