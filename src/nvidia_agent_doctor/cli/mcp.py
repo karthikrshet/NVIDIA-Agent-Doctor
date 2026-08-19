@@ -7,6 +7,8 @@ from rich import box
 from rich.console import Console
 from rich.table import Table
 
+from nvidia_agent_doctor.core.severity import SecuritySeverity
+
 app = typer.Typer(help="MCP configuration analysis.", invoke_without_command=True)
 
 
@@ -31,61 +33,75 @@ def scan(
     console = Console()
     configured_paths = get_config().mcp.config_paths
     servers = discover_mcp_servers(extra_paths=[*configured_paths, *config_path])
+    server_findings = [(server, analyze_mcp_server(server)) for server in servers]
 
     if json_output:
         import json
 
         result = []
-        for server in servers:
-            findings = analyze_mcp_server(server)
+        for server, findings in server_findings:
             result.append(
                 {
                     "server": redact_data(server.model_dump()),
-                    "findings": [{**f, "severity": f["severity"].value} for f in findings],
+                    "findings": [
+                        redact_data({**f, "severity": f["severity"].value}) for f in findings
+                    ],
                 }
             )
         typer.echo(json.dumps(result, indent=2))
-        return
+    else:
+        if not servers:
+            console.print("[dim]No MCP server configurations found.[/dim]")
+            console.print("[dim]Searched: ~/.mcp/config.json, ~/.mcp.json, ./.mcp.json[/dim]")
+        else:
+            console.print(f"\n[bold]Found {len(servers)} MCP server(s)[/bold]\n")
 
-    if not servers:
-        console.print("[dim]No MCP server configurations found.[/dim]")
-        console.print("[dim]Searched: ~/.mcp/config.json, ~/.mcp.json, ./.mcp.json[/dim]")
-        return
+            table = Table(box=box.ROUNDED, border_style="bright_blue", expand=True)
+            table.add_column("Server", style="bold white")
+            table.add_column("Transport", style="dim")
+            table.add_column("Command", style="dim")
+            table.add_column("Risk Level", justify="center")
 
-    console.print(f"\n[bold]Found {len(servers)} MCP server(s)[/bold]\n")
+            for server, findings in server_findings:
+                max_severity = max(findings, key=lambda f: f["severity"].score)["severity"]
 
-    table = Table(box=box.ROUNDED, border_style="bright_blue", expand=True)
-    table.add_column("Server", style="bold white")
-    table.add_column("Transport", style="dim")
-    table.add_column("Command", style="dim")
-    table.add_column("Risk Level", justify="center")
+                table.add_row(
+                    redact_data(server.name),
+                    redact_data(server.transport or "stdio"),
+                    redact_data(server.command or "N/A"),
+                    f"[{max_severity.color}]{max_severity.value}[/{max_severity.color}]",
+                )
 
-    for server in servers:
-        findings = analyze_mcp_server(server)
-        max_severity = max(findings, key=lambda f: f["severity"].score)["severity"]
+            console.print(table)
 
-        table.add_row(
-            server.name,
-            server.transport or "stdio",
-            server.command or "N/A",
-            f"[{max_severity.color}]{max_severity.value}[/{max_severity.color}]",
-        )
+            if verbose:
+                console.print()
+                for server, findings in server_findings:
+                    console.print(f"\n[bold]{redact_data(server.name)}[/bold]")
+                    console.print(f"  Config: {redact_data(str(server.config_path))}")
+                    for finding in findings:
+                        safe_finding = redact_data(
+                            {key: value for key, value in finding.items() if key != "severity"}
+                        )
+                        sev = finding["severity"]
+                        console.print(
+                            f"  [{sev.color}]{sev.value}[/{sev.color}] {safe_finding['title']}"
+                        )
+                        console.print(f"    {safe_finding['description']}")
+                        console.print(f"    [yellow]-> {safe_finding['recommendation']}[/yellow]")
 
-    console.print(table)
+            console.print(
+                "\n[dim]Note: MCP security analysis is heuristic. Verify all findings manually.[/dim]"
+                "\n[dim]Secret values are redacted and never displayed.[/dim]"
+            )
 
-    if verbose:
-        console.print()
-        for server in servers:
-            findings = analyze_mcp_server(server)
-            console.print(f"\n[bold]{server.name}[/bold]")
-            console.print(f"  Config: {server.config_path}")
-            for finding in findings:
-                sev = finding["severity"]
-                console.print(f"  [{sev.color}]{sev.value}[/{sev.color}] {finding['title']}")
-                console.print(f"    {finding['description']}")
-                console.print(f"    [yellow]-> {finding['recommendation']}[/yellow]")
+    _exit_for_findings([finding for _, findings in server_findings for finding in findings])
 
-    console.print(
-        "\n[dim]Note: MCP security analysis is heuristic. Verify all findings manually.[/dim]"
-        "\n[dim]Secret values are redacted and never displayed.[/dim]"
-    )
+
+def _exit_for_findings(findings: list[dict[str, object]]) -> None:
+    """Map heuristic MCP severities to the documented diagnostic exit codes."""
+    severities = {finding["severity"] for finding in findings}
+    if SecuritySeverity.HIGH in severities or SecuritySeverity.CRITICAL in severities:
+        raise typer.Exit(code=3)
+    if SecuritySeverity.MEDIUM in severities or SecuritySeverity.LOW in severities:
+        raise typer.Exit(code=1)

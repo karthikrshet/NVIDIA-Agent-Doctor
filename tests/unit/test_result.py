@@ -56,6 +56,25 @@ class TestSectionResult:
         )
         assert "Do X" in section.recommendations
 
+    def test_exit_code_matches_section_severity(self) -> None:
+        assert make_section("pass", [Severity.PASS]).exit_code == 0
+        assert make_section("warning", [Severity.WARNING]).exit_code == 1
+        assert make_section("error", [Severity.ERROR]).exit_code == 2
+
+    def test_exit_code_reports_high_security_finding(self) -> None:
+        section = make_section("security", [Severity.PASS])
+        section.security_findings.append(
+            SecurityFinding(
+                title="Unsafe MCP server",
+                severity=SecuritySeverity.HIGH,
+                description="Potential security risk requiring review.",
+                recommendation="Review the server configuration.",
+                component="mcp",
+            )
+        )
+
+        assert section.exit_code == 3
+
 
 class TestDiagnosticReport:
     def test_overall_score_default(self) -> None:

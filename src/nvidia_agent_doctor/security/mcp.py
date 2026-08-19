@@ -6,6 +6,7 @@ from typing import Any
 
 from nvidia_agent_doctor.core.models import MCPServerInfo
 from nvidia_agent_doctor.core.severity import SecuritySeverity
+from nvidia_agent_doctor.security.credentials import redact_data, redact_text
 
 _HIGH_RISK_COMMANDS = [
     "bash",
@@ -34,6 +35,7 @@ def analyze_mcp_server(server: MCPServerInfo) -> list[dict[str, Any]]:
     Returns a list of security findings.
     """
     findings: list[dict[str, Any]] = []
+    safe_server_name = redact_text(server.name)
 
     # Check for shell execution
     if server.command and any(
@@ -45,7 +47,7 @@ def analyze_mcp_server(server: MCPServerInfo) -> list[dict[str, Any]]:
                 "severity": SecuritySeverity.HIGH,
                 "title": "MCP server executes shell directly",
                 "description": (
-                    f"Server '{server.name}' uses command '{server.command}', "
+                    f"Server '{safe_server_name}' uses command '{redact_text(server.command)}', "
                     "which is a shell interpreter. Shell-based MCP servers can "
                     "execute arbitrary system commands."
                 ),
@@ -58,7 +60,7 @@ def analyze_mcp_server(server: MCPServerInfo) -> list[dict[str, Any]]:
 
     # Check for risky arguments
     risky_args = [
-        arg
+        redact_text(arg)
         for arg in server.args
         if any(pattern in arg.lower() for pattern in _RISKY_ARGS_PATTERNS)
     ]
@@ -68,7 +70,7 @@ def analyze_mcp_server(server: MCPServerInfo) -> list[dict[str, Any]]:
                 "severity": SecuritySeverity.MEDIUM,
                 "title": "MCP server uses potentially dangerous arguments",
                 "description": (
-                    f"Server '{server.name}' uses arguments: {risky_args}. "
+                    f"Server '{safe_server_name}' uses arguments: {risky_args}. "
                     "These flags may grant elevated access."
                 ),
                 "recommendation": "Review and restrict argument flags to minimum required.",
@@ -87,7 +89,7 @@ def analyze_mcp_server(server: MCPServerInfo) -> list[dict[str, Any]]:
                 "severity": SecuritySeverity.MEDIUM,
                 "title": "MCP server has secrets in environment",
                 "description": (
-                    f"Server '{server.name}' has potentially sensitive environment "
+                    f"Server '{safe_server_name}' has potentially sensitive environment "
                     f"variables: {exposed_secrets}. Values have been redacted."
                 ),
                 "recommendation": (
@@ -104,7 +106,7 @@ def analyze_mcp_server(server: MCPServerInfo) -> list[dict[str, Any]]:
                 "severity": SecuritySeverity.MEDIUM,
                 "title": "MCP server uses insecure HTTP",
                 "description": (
-                    f"Server '{server.name}' connects to '{server.url}' over HTTP. "
+                    f"Server '{safe_server_name}' connects to '{redact_data(server.url)}' over HTTP. "
                     "Data transmitted may be intercepted."
                 ),
                 "recommendation": "Use HTTPS for all remote MCP server connections.",
@@ -117,7 +119,7 @@ def analyze_mcp_server(server: MCPServerInfo) -> list[dict[str, Any]]:
                 "severity": SecuritySeverity.INFO,
                 "title": "No obvious security issues detected",
                 "description": (
-                    f"Server '{server.name}' passed basic security checks. "
+                    f"Server '{safe_server_name}' passed basic security checks. "
                     "This is a heuristic scan and does not guarantee security."
                 ),
                 "recommendation": "Review server capabilities and permissions periodically.",

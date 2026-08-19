@@ -85,3 +85,7 @@ def nim(
         console.print(f"Local NIM status: {result['status']}")
         if result.get("recommendation"):
             console.print(f"[yellow]{result['recommendation']}[/yellow]")
+    if result["status"] == "invalid_endpoint":
+        raise typer.Exit(code=2)
+    if allow_local_request and result["status"] in {"unavailable", "not_ready"}:
+        raise typer.Exit(code=1)

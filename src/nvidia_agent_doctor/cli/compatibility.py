@@ -33,3 +33,6 @@ def check(
         typer.echo(render_json(report))
     else:
         _render_section(section, console)
+
+    if section.exit_code:
+        raise typer.Exit(code=section.exit_code)

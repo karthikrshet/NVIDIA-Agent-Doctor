@@ -8,6 +8,7 @@ import typer
 from rich.console import Console
 
 app = typer.Typer(help="Generate diagnostic reports.", invoke_without_command=True)
+_SUPPORTED_FORMATS = {"terminal", "json", "markdown", "html", "compliance-audit"}
 
 
 @app.callback(invoke_without_command=True)
@@ -32,43 +33,59 @@ def generate(
     from nvidia_agent_doctor.cli.doctor import _run_doctor
     from nvidia_agent_doctor.reports import compliance, html, json_report, markdown, terminal
 
+    if format not in _SUPPORTED_FORMATS:
+        supported = ", ".join(sorted(_SUPPORTED_FORMATS))
+        raise typer.BadParameter(
+            f"unsupported report format {format!r}; choose one of: {supported}",
+            param_hint="--format",
+        )
+
     console = Console()
     report = _run_doctor(console, quiet=True)
 
     if format == "json":
         content = json_report.render_json(report)
         if output:
-            output.write_text(content, encoding="utf-8")
-            console.print(f"[green]JSON report written to {output}[/green]")
+            _write_report(output, content, "JSON", console)
         else:
             typer.echo(content)
 
     elif format == "markdown":
         content = markdown.render_markdown(report)
         if output:
-            output.write_text(content, encoding="utf-8")
-            console.print(f"[green]Markdown report written to {output}[/green]")
+            _write_report(output, content, "Markdown", console)
         else:
             typer.echo(content)
 
     elif format == "html":
         content = html.render_html(report)
         if output:
-            output.write_text(content, encoding="utf-8")
-            console.print(f"[green]HTML report written to {output}[/green]")
+            _write_report(output, content, "HTML", console)
         elif typer.get_terminal_size()[0] > 0:
             # Default HTML output path
             default_path = Path(f"nad-report-{report.timestamp.strftime('%Y%m%d-%H%M%S')}.html")
-            default_path.write_text(content, encoding="utf-8")
-            console.print(f"[green]HTML report written to {default_path}[/green]")
+            _write_report(default_path, content, "HTML", console)
 
     elif format == "compliance-audit":
         content = compliance.render_compliance_audit(report)
         if output:
-            output.write_text(content, encoding="utf-8")
-            console.print(f"[green]Security readiness audit written to {output}[/green]")
+            _write_report(output, content, "Security readiness audit", console)
         else:
             typer.echo(content)
 
     else:
         terminal.render_report(report, console=console)
+
+    if report.exit_code:
+        raise typer.Exit(code=report.exit_code)
+
+
+def _write_report(output: Path, content: str, label: str, console: Console) -> None:
+    """Write a requested report path without exposing an unhandled traceback."""
+    try:
+        output.write_text(content, encoding="utf-8")
+    except OSError as exc:
+        raise typer.BadParameter(
+            f"could not write report to {output}: {exc}", param_hint="--output"
+        ) from exc
+    console.print(f"[green]{label} written to {output}[/green]")

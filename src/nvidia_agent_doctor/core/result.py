@@ -88,6 +88,26 @@ class SectionResult(BaseModel):
     def recommendations(self) -> list[str]:
         return [c.recommendation for c in self.checks if c.recommendation]
 
+    @property
+    def exit_code(self) -> int:
+        """Return the documented CLI status for this section alone.
+
+        Optional ``NOT_INSTALLED`` and ``UNKNOWN`` checks deliberately return
+        success because they are not actionable failures. This mirrors
+        :attr:`DiagnosticReport.exit_code` for commands that render one
+        section instead of a full report.
+        """
+        if self.errors:
+            return 2
+        if any(
+            finding.severity in (SecuritySeverity.HIGH, SecuritySeverity.CRITICAL)
+            for finding in self.security_findings
+        ):
+            return 3
+        if self.warnings:
+            return 1
+        return 0
+
 
 class ToolInfo(BaseModel):
     """Metadata about the nad tool itself."""

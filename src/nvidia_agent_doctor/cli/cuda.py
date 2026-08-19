@@ -39,3 +39,6 @@ def check(
 
             console.print("\n[dim]Full CUDA info:[/dim]")
             console.print(json.dumps(section.metadata["cuda_info"], indent=2, default=str))
+
+    if section.exit_code:
+        raise typer.Exit(code=section.exit_code)

@@ -15,12 +15,14 @@ This project uses [Semantic Versioning](https://semver.org/).
 - `nad triton check` for local Triton indicators and an explicit loopback-only readiness check.
 - Sanitized real-hardware evidence for an RTX 3050 with CUDA-enabled PyTorch.
 - Regression coverage for benchmark cleanup, TensorRT error redaction, NIM/Triton hostile URLs, and runtime CLI behavior.
+- A manually dispatched, self-hosted GPU validation workflow that requires measured hardware evidence and never uploads host reports.
 
 ### Changed
 
 - Configuration now accepts only settings consumed by the CLI; unsupported legacy/no-op keys fail validation instead of being accepted silently.
 - The README now distinguishes real integrations, static/heuristic detection, and hardware-validated evidence.
 - The doctor command reuses its PyTorch discovery result during CUDA collection to avoid redundant optional-runtime probing.
+- Section commands, report generation, MCP scans, and skill scans now return documented warning, error, and high-security exit codes.
 
 ### Fixed
 
@@ -28,6 +30,8 @@ This project uses [Semantic Versioning](https://semver.org/).
 - Benchmark and PyTorch validation errors are redacted and release GPU cache references on all handled paths.
 - Older NVIDIA-SMI installations that reject `--version` can still be detected through the documented GPU-listing probe.
 - Local NIM and Triton readiness endpoints reject malformed, remote, credential-bearing, query-string, and fragment URLs.
+- MCP findings, arguments, URLs, terminal output, and JSON output are redacted before rendering.
+- Reusable workflows no longer upload caller diagnostic reports or suppress failed security and skills scans.
 
 ---
 

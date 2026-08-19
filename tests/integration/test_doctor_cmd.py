@@ -112,13 +112,16 @@ class TestGPUCommand:
 class TestSecurityCommand:
     def test_security_scan_no_crash(self) -> None:
         result = runner.invoke(app, ["security", "scan"])
-        assert result.exit_code == 0
+        # A warning/error/security status is an intentional finding, not a
+        # command crash. The scanner must preserve the documented status.
+        assert result.exit_code in (0, 1, 2, 3)
 
     def test_security_scan_json(self) -> None:
         result = runner.invoke(app, ["security", "scan", "--json"])
-        assert result.exit_code == 0
+        assert result.exit_code in (0, 1, 2, 3)
         data = json.loads(result.output)
         assert "sections" in data
+        assert data["summary"]["exit_code"] == result.exit_code
 
 
 class TestMachineReadableSubcommands:
