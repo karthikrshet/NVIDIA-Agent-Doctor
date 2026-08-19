@@ -21,6 +21,7 @@ This project uses [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The README now contains an evidence-based validation ledger that separates verified hardware paths from unavailable or unverified deployment targets.
 - The default doctor now reads PyTorch package metadata without importing the runtime; `--deep-pytorch` explicitly enables CUDA device and bounded compute validation.
 - Driver-reported CUDA maximums are now distinct from local CUDA runtime evidence, preventing `nvidia-smi` capability output from being presented as an installed runtime.
 - Configuration now accepts only settings consumed by the CLI; unsupported legacy/no-op keys fail validation instead of being accepted silently.

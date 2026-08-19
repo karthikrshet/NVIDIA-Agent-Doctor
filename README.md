@@ -325,8 +325,27 @@ The repository includes a sanitized record from an authorized Windows test machi
 | PyTorch | 2.7.1+cu118 |
 | PyTorch CUDA | One device; compute capability 8.6; tiny CUDA compute passed |
 | Bounded benchmark | 16 MB GPU-only matrix multiplication measured successfully with a 15-second timeout |
+| Linux container GPU access | The bounded `nvidia/cuda:11.6.2-base-ubuntu20.04` Docker probe saw the same GPU, driver, and 4096 MiB VRAM |
 
-This validates the listed machine only. It is not evidence for every driver, GPU generation, operating system, CUDA version, or optional NVIDIA runtime. TensorRT, Triton, NIM, multi-GPU, OpenShell, and Kubernetes require their own authorized environments before they can be described as hardware-validated.
+This validates the listed machine and its Docker Desktop Linux-container path only. It is not evidence for every driver, GPU generation, operating system, CUDA version, or optional NVIDIA runtime.
+
+### Validation ledger
+
+| Area | Status | Evidence or reason |
+|---|---|---|
+| Windows GPU, CUDA driver, and PyTorch | Verified | Authorized RTX 3050 host; real `nvidia-smi` and bounded PyTorch compute check |
+| Linux GPU container visibility | Verified | Network-isolated Docker CUDA 11.6 container; real `nvidia-smi` inventory query |
+| Native/self-hosted Linux GPU CI | Unverified | No dedicated Linux GPU runner is available to this project yet |
+| Multi-GPU behavior | Unverified | Only one GPU is available on the authorized host |
+| CUDA/driver mismatch execution | Unverified | No authorized mismatched runtime environment is available; compatibility code is unit-tested only |
+| TensorRT runtime and builder | Not installed | No local TensorRT installation or authorized deployment is available |
+| Triton readiness endpoint | Unavailable | Explicit loopback readiness request found no running server |
+| NIM readiness endpoint | Unavailable | Explicit loopback readiness request was refused; no NIM deployment is configured |
+| OpenShell and Kubernetes | Heuristic/opt-in | No authorized runtime or cluster is configured |
+
+`Verified` means a real command ran against the named environment. `Unverified`,
+`Not installed`, and `Unavailable` are not failures invented by the tool; they
+are deliberate limits on what this repository claims.
 
 Run the same evidence-based checks on an authorized GPU host:
 
@@ -337,6 +356,7 @@ nad gpu info --json
 nad gpu health --json
 nad cuda check --json
 nad compatibility check --json
+nad docker gpu-check --allow-container-run --json
 nad doctor --json --profile --deep-pytorch
 nad benchmark run --gpu-only --yes --max-memory-mb 16 --timeout-seconds 15 --json
 ```
@@ -349,6 +369,7 @@ See the [hardware validation runbook](docs/hardware-validation.md) and [sanitize
 - GPU checks require a functional `nvidia-smi`; absence is reported rather than simulated.
 - CUDA compatibility checks use limited documented driver-major lower bounds. Use official NVIDIA release notes and support matrices for exact deployment compatibility.
 - TensorRT, Triton, NeMo/Nemotron/NemoClaw, OpenShell, NIM, and Kubernetes coverage has the classification stated above; absence of a detection result is not proof of absence or incompatibility.
+- Docker GPU validation is opt-in and validates only an already-local CUDA image. It does not replace native Linux, multi-GPU, or production-server validation.
 - MCP analysis reads configuration; it does not observe live server behavior or establish effective OS/container capabilities.
 - Skill scanning is static heuristic analysis, not malware detection or sandboxing.
 - The HTML report is escaped and self-contained, but reports may still contain non-secret local environment details.
