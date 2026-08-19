@@ -39,6 +39,15 @@ def test_ci_builds_and_installs_the_distribution_wheel() -> None:
     assert "python -m pip install --force-reinstall dist/*.whl" in workflow
 
 
+def test_ci_self_diagnosis_accepts_warnings_but_not_errors_or_high_findings() -> None:
+    workflow = _CI_WORKFLOW.read_text(encoding="utf-8")
+
+    assert "nad security scan --json > nad-security-scan.json" in workflow
+    assert "nad compatibility check --json > nad-compatibility.json" in workflow
+    assert 'if [ "$EXIT_CODE" -gt 1 ]; then' in workflow
+    assert "nad security scan --json || true" not in workflow
+
+
 def test_manual_gpu_workflow_is_trusted_bounded_and_no_artifact() -> None:
     workflow = _GPU_WORKFLOW.read_text(encoding="utf-8")
 

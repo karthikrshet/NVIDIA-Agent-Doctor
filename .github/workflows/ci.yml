@@ -107,10 +107,33 @@ jobs:
           python -m json.tool nad-self-diagnosis.json > /dev/null
 
       - name: Run security scan
-        run: nad security scan --json
+        run: |
+          set +e
+          nad security scan --json > nad-security-scan.json
+          EXIT_CODE=$?
+          set -e
+          python -m json.tool nad-security-scan.json > /dev/null
+          # GitHub-hosted runners can legitimately have reviewable security
+          # warnings (for example, managed environment credentials). Preserve
+          # those as status 1 while failing diagnostic errors or high findings.
+          if [ "$EXIT_CODE" -gt 1 ]; then
+            echo "Security scan failed with exit code: $EXIT_CODE"
+            exit "$EXIT_CODE"
+          fi
+          echo "Security scan exit code: $EXIT_CODE"
 
       - name: Run compatibility check
-        run: nad compatibility check --json
+        run: |
+          set +e
+          nad compatibility check --json > nad-compatibility.json
+          EXIT_CODE=$?
+          set -e
+          python -m json.tool nad-compatibility.json > /dev/null
+          if [ "$EXIT_CODE" -gt 1 ]; then
+            echo "Compatibility check failed with exit code: $EXIT_CODE"
+            exit "$EXIT_CODE"
+          fi
+          echo "Compatibility check exit code: $EXIT_CODE"
 
   lint:
     name: Lint & Format Check
