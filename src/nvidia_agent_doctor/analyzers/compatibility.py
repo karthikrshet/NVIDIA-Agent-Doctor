@@ -90,7 +90,20 @@ def analyze_compatibility(
         )
 
     # CUDA ↔ PyTorch
-    if pytorch_info["installed"] and pytorch_info.get("cuda_version"):
+    if pytorch_info["installed"] and not pytorch_info.get("runtime_probed", True):
+        build_metadata = pytorch_info.get("cuda_build_metadata")
+        section.checks.append(
+            CheckResult(
+                name="cuda_pytorch",
+                severity=Severity.UNKNOWN,
+                message="PyTorch CUDA runtime was not initialized during the default doctor check",
+                detail=(
+                    f"PyTorch wheel CUDA build metadata: {build_metadata or 'not available'}. "
+                    "Use `nad doctor --deep-pytorch` for runtime evidence."
+                ),
+            )
+        )
+    elif pytorch_info["installed"] and pytorch_info.get("cuda_version"):
         pt_cuda = pytorch_info["cuda_version"]
         toolkit = cuda_info.toolkit_version
 

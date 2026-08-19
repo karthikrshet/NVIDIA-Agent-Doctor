@@ -45,15 +45,38 @@ def test_cuda_collector_reuses_the_already_detected_pytorch_cuda_build() -> None
         with patch(
             "nvidia_agent_doctor.collectors.cuda._detect_driver_cuda_version", return_value="511.65"
         ):
-            with patch("nvidia_agent_doctor.collectors.cuda._find_cuda_libraries", return_value=[]):
+            with patch(
+                "nvidia_agent_doctor.collectors.cuda._detect_driver_cuda_max_version"
+            ) as driver_max:
                 with patch(
-                    "nvidia_agent_doctor.collectors.cuda._detect_runtime_version",
-                    return_value="11.8",
-                ) as runtime:
-                    info = collect_cuda_info(nvidia_smi_available=True, pytorch_cuda_version="11.8")
+                    "nvidia_agent_doctor.collectors.cuda._find_cuda_libraries", return_value=[]
+                ):
+                    with patch(
+                        "nvidia_agent_doctor.collectors.cuda._detect_runtime_version",
+                        return_value="11.8",
+                    ) as runtime:
+                        info = collect_cuda_info(
+                            nvidia_smi_available=True,
+                            pytorch_cuda_version="11.8",
+                            driver_cuda_max_version="11.6",
+                        )
 
-    runtime.assert_called_once_with(True, "11.8")
+    runtime.assert_called_once_with(True, "11.8", allow_pytorch_import=True)
+    driver_max.assert_not_called()
     assert info.runtime_version == "11.8"
+    assert info.driver_cuda_max_version == "11.6"
+
+
+def test_driver_cuda_maximum_is_reported_separately_from_runtime() -> None:
+    section = analyze_cuda(CUDAInfo(driver_cuda_max_version="11.6", driver_version="511.65"))
+
+    driver_max_check = next(
+        check for check in section.checks if check.name == "cuda_driver_maximum"
+    )
+
+    assert driver_max_check.severity is Severity.PASS
+    assert "does not prove" in (driver_max_check.detail or "")
+    assert not any(check.name == "cuda_runtime" for check in section.checks)
 
 
 def test_driver_only_cuda_runtime_does_not_require_toolkit_environment_variables() -> None:
@@ -62,6 +85,13 @@ def test_driver_only_cuda_runtime_does_not_require_toolkit_environment_variables
 
     assert env_check.severity is Severity.NOT_APPLICABLE
     assert env_check.fix_command is None
+
+
+def test_driver_maximum_alone_does_not_claim_a_cuda_runtime() -> None:
+    section = analyze_cuda(CUDAInfo(driver_cuda_max_version="11.6", driver_version="511.65"))
+    env_check = next(check for check in section.checks if check.name == "cuda_env_vars")
+
+    assert "does not establish" in (env_check.detail or "")
 
 
 def test_installed_toolkit_without_environment_variables_never_suggests_a_guessed_command() -> None:

@@ -21,6 +21,8 @@ _CUDA_COMPATIBILITY_URL = "https://docs.nvidia.com/deploy/cuda-compatibility/"
 def collect_cuda_info(
     nvidia_smi_available: bool | None = None,
     pytorch_cuda_version: str | None = None,
+    allow_pytorch_import: bool = True,
+    driver_cuda_max_version: str | None = None,
 ) -> CUDAInfo:
     """Collect CUDA installation details from environment and filesystem. Never raises."""
     cuda_home = os.environ.get("CUDA_HOME")
@@ -37,8 +39,13 @@ def collect_cuda_info(
         if nvidia_smi_available is None
         else nvidia_smi_available
     )
-    runtime_version = _detect_runtime_version(smi_available, pytorch_cuda_version)
+    runtime_version = _detect_runtime_version(
+        smi_available,
+        pytorch_cuda_version,
+        allow_pytorch_import=allow_pytorch_import,
+    )
     driver_version = _detect_driver_cuda_version(smi_available)
+    driver_cuda_max = driver_cuda_max_version or _detect_driver_cuda_max_version(smi_available)
 
     libraries = _find_cuda_libraries(cuda_home, cuda_path, ld_lib)
 
@@ -48,6 +55,7 @@ def collect_cuda_info(
         toolkit_version=toolkit_version,
         runtime_version=runtime_version,
         driver_version=driver_version,
+        driver_cuda_max_version=driver_cuda_max,
         nvcc_path=nvcc_path,
         nvcc_available=nvcc_available,
         cuda_home=cuda_home,
@@ -118,38 +126,29 @@ def _parse_nvcc_version(output: str) -> str | None:
 def _detect_runtime_version(
     nvidia_smi_available: bool = True,
     pytorch_cuda_version: str | None = None,
+    allow_pytorch_import: bool = True,
 ) -> str | None:
-    """Detect CUDA runtime version via libcudart or torch."""
+    """Detect the CUDA version reported by an initialized PyTorch runtime."""
     if pytorch_cuda_version:
         return pytorch_cuda_version
-    # Try via PyTorch if available
     if not nvidia_smi_available:
         return None
-    try:
-        import torch
+    if allow_pytorch_import:
+        try:
+            import torch
 
-        if hasattr(torch, "version") and hasattr(torch.version, "cuda"):
-            cuda_ver = torch.version.cuda
-            if cuda_ver:
-                return str(cuda_ver)
-    except ImportError:
-        pass
-
-    # Try via nvidia-smi
-    try:
-        result = subprocess.run(["nvidia-smi"], capture_output=True, text=True, timeout=10)
-        if result.returncode == 0:
-            match = re.search(r"CUDA Version:\s+(\d+\.\d+)", result.stdout)
-            if match:
-                return match.group(1)
-    except Exception:
-        pass
+            if hasattr(torch, "version") and hasattr(torch.version, "cuda"):
+                cuda_ver = torch.version.cuda
+                if cuda_ver:
+                    return str(cuda_ver)
+        except ImportError:
+            pass
 
     return None
 
 
 def _detect_driver_cuda_version(nvidia_smi_available: bool = True) -> str | None:
-    """Detect the max CUDA version supported by the installed driver."""
+    """Detect the installed NVIDIA driver version."""
     if not nvidia_smi_available:
         return None
     try:
@@ -163,6 +162,21 @@ def _detect_driver_cuda_version(nvidia_smi_available: bool = True) -> str | None
             driver = result.stdout.strip().splitlines()[0].strip()
             if driver:
                 return driver
+    except Exception:
+        pass
+    return None
+
+
+def _detect_driver_cuda_max_version(nvidia_smi_available: bool = True) -> str | None:
+    """Read the CUDA maximum reported by the NVIDIA driver, not a runtime."""
+    if not nvidia_smi_available:
+        return None
+    try:
+        result = subprocess.run(["nvidia-smi"], capture_output=True, text=True, timeout=10)
+        if result.returncode == 0:
+            match = re.search(r"CUDA Version:\s+(\d+\.\d+)", result.stdout)
+            if match:
+                return match.group(1)
     except Exception:
         pass
     return None

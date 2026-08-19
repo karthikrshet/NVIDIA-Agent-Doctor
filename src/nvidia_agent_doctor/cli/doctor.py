@@ -27,6 +27,11 @@ def doctor(
     ),
     no_color: bool = typer.Option(False, "--no-color", help="Disable colors."),
     profile: bool = typer.Option(False, "--profile", help="Record local check durations."),
+    deep_pytorch: bool = typer.Option(
+        False,
+        "--deep-pytorch",
+        help="Import PyTorch, inspect CUDA devices, and run the bounded basic compute check.",
+    ),
     auto_resolve: bool = typer.Option(
         False,
         "--auto-resolve",
@@ -60,7 +65,13 @@ def doctor(
     console = Console(no_color=no_color)
     # Suppress progress output when JSON mode is active to avoid mixing text with JSON
     _quiet = quiet or json_output
-    report = _run_doctor(console, verbose=verbose, quiet=_quiet, profile=profile)
+    report = _run_doctor(
+        console,
+        verbose=verbose,
+        quiet=_quiet,
+        profile=profile,
+        deep_pytorch=deep_pytorch,
+    )
     if auto_resolve:
         from nvidia_agent_doctor.core.remediation import build_remediation_plan
 
@@ -106,6 +117,7 @@ def _run_doctor(
     verbose: bool = False,
     quiet: bool = False,
     profile: bool = False,
+    deep_pytorch: bool = False,
 ) -> DiagnosticReport:
     """Run all diagnostic checks and return a report."""
     from nvidia_agent_doctor.analyzers.compatibility import analyze_compatibility
@@ -142,13 +154,15 @@ def _run_doctor(
     probe_durations["GPU inventory"] = round((time.perf_counter() - started) * 1000, 2)
 
     started = time.perf_counter()
-    pytorch_info = check_pytorch()
+    pytorch_info = check_pytorch(probe_runtime=deep_pytorch)
     probe_durations["PyTorch discovery"] = round((time.perf_counter() - started) * 1000, 2)
 
     started = time.perf_counter()
     cuda_info = collect_cuda_info(
         nvidia_smi_available=smi_available,
         pytorch_cuda_version=pytorch_info.get("cuda_version"),
+        allow_pytorch_import=deep_pytorch,
+        driver_cuda_max_version=gpu_info[0].cuda_version if gpu_info else None,
     )
     probe_durations["CUDA discovery"] = round((time.perf_counter() - started) * 1000, 2)
 

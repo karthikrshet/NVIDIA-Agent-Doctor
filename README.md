@@ -42,8 +42,8 @@ The default `nad doctor` command is read-only. It checks the local operating sys
 | Area | What the tool does today | Classification |
 |---|---|---|
 | NVIDIA GPU | Uses `nvidia-smi` XML with a query fallback to read inventory, driver, VRAM, utilization, temperature, power when available, and compute capability when supported. | Real local integration |
-| CUDA | Reads `nvcc`, CUDA environment variables, driver evidence, and an installed PyTorch CUDA build when present. Driver compatibility is limited to documented CUDA major-family minimums. | Real local integration; not a full support matrix |
-| PyTorch | Imports the package when installed, checks CUDA availability/devices, and performs one tiny GPU dot product. | Real local integration |
+| CUDA | Reads `nvcc`, CUDA environment variables, driver evidence, and an installed PyTorch CUDA build when present. The `nvidia-smi` CUDA value is reported only as the driver's supported maximum—not as proof of a local runtime. Driver compatibility is limited to documented CUDA major-family minimums. | Real local integration; not a full support matrix |
+| PyTorch | The default doctor reads installed-wheel metadata only. `--deep-pytorch` imports the package, checks CUDA availability/devices, and performs one tiny GPU dot product. | Metadata-only by default; real local integration when explicitly requested |
 | Docker | Detects Docker and NVIDIA container-runtime indicators. | Local detection |
 | TensorRT | Checks whether the local Python package imports and whether basic builder/runtime indicators are present. | Partial local detection |
 | Triton Inference Server | Checks binary, process, and container indicators; optionally calls the documented loopback readiness endpoint after explicit consent. It never sends inference. | Heuristic detection plus limited local integration |
@@ -78,6 +78,7 @@ cd NVIDIA-Agent-Doctor
 python -m pip install -e .
 nad --version
 nad doctor
+nad doctor --deep-pytorch --json  # explicit PyTorch CUDA/runtime validation
 ```
 
 For development tools and the test suite:
@@ -108,7 +109,7 @@ nad tensorrt check --json
 nad triton check --json
 ```
 
-To inspect where time is spent on your machine, use `nad doctor --json --profile`. PyTorch import and CUDA initialization can dominate a first run when CUDA-enabled PyTorch is installed.
+To inspect where time is spent on your machine, use `nad doctor --json --profile`. The default doctor avoids PyTorch import and CUDA initialization; those deeper operations can dominate `nad doctor --deep-pytorch --json --profile`.
 
 ## Common workflows
 
@@ -325,6 +326,7 @@ nad gpu info --json
 nad gpu health --json
 nad cuda check --json
 nad compatibility check --json
+nad doctor --json --profile --deep-pytorch
 nad benchmark run --gpu-only --yes --max-memory-mb 16 --timeout-seconds 15 --json
 ```
 

@@ -4,7 +4,7 @@ Run these tests only on a machine where inspecting the GPU is authorized:
 
 ```bash
 pytest tests/hardware -m gpu -v --tb=short
-nad doctor --json --profile
+nad doctor --json --profile --deep-pytorch
 nad gpu info
 nad gpu health
 nad cuda check
@@ -19,6 +19,11 @@ are recorded as optional runtime evidence and are never simulated. The
 sanitized RTX 3050 fixture also records a successful local PyTorch CUDA basic
 compute check; it does not assert TensorRT, Triton, NIM, or multi-GPU support.
 
+The default `nad doctor` reads PyTorch package metadata only, so it remains
+fast and does not initialize CUDA. The `--deep-pytorch` flag in this runbook is
+intentional: it opts into the real device enumeration and bounded basic compute
+check needed for hardware validation.
+
 The availability probe uses NVIDIA's documented `nvidia-smi -L` GPU-listing
 operation. This avoids treating older drivers that reject `nvidia-smi --version`
 as unavailable.
@@ -31,6 +36,11 @@ Exact TensorRT combinations must be verified against NVIDIA's current
 [TensorRT Support Matrix](https://docs.nvidia.com/deeplearning/tensorrt/latest/getting-started/support-matrix.html),
 because supported package, operating system, CUDA, and driver combinations vary
 by TensorRT release.
+
+`nvidia-smi`'s `CUDA Version` is shown as a **driver-reported CUDA maximum**.
+It establishes the maximum CUDA version the installed driver advertises, not
+that a local CUDA runtime is installed. Agent Doctor reports it separately from
+toolkit and runtime evidence and does not use it to claim runtime validation.
 
 Save the command output and attach it to an issue or release validation record
 after removing any locally sensitive paths or metadata.

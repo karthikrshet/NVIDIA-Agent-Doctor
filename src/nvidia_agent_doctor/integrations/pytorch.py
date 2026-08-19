@@ -2,14 +2,21 @@
 
 from __future__ import annotations
 
+import re
+from importlib import metadata
 from typing import Any
 
 from nvidia_agent_doctor.security.credentials import redact_text
 
 
-def check_pytorch() -> dict[str, Any]:
+def check_pytorch(probe_runtime: bool = True) -> dict[str, Any]:
     """
-    Perform a lightweight PyTorch health check.
+    Inspect PyTorch and, when requested, run a lightweight runtime health check.
+
+    ``probe_runtime=False`` reads only installed-package metadata. This avoids
+    importing PyTorch or initializing CUDA during the default doctor command.
+    A metadata-only result deliberately does not claim that CUDA is available.
+
     Returns a dict with version info and basic compute check results.
     Never raises.
     """
@@ -17,6 +24,8 @@ def check_pytorch() -> dict[str, Any]:
         "installed": False,
         "version": None,
         "cuda_version": None,
+        "cuda_build_metadata": None,
+        "runtime_probed": False,
         "cuda_available": False,
         "device_count": 0,
         "devices": [],
@@ -26,11 +35,26 @@ def check_pytorch() -> dict[str, Any]:
         "error": None,
     }
 
+    if not probe_runtime:
+        try:
+            version = metadata.version("torch")
+        except metadata.PackageNotFoundError:
+            return result
+        except Exception as exc:
+            result["error"] = redact_text(str(exc))
+            return result
+
+        result["installed"] = True
+        result["version"] = version
+        result["cuda_build_metadata"] = _cuda_build_from_distribution_version(version)
+        return result
+
     try:
         import torch
 
         result["installed"] = True
         result["version"] = torch.__version__
+        result["runtime_probed"] = True
         result["cuda_version"] = getattr(torch.version, "cuda", None)
         result["cuda_available"] = torch.cuda.is_available()
 
@@ -79,3 +103,18 @@ def check_pytorch() -> dict[str, Any]:
         result["error"] = redact_text(str(exc))
 
     return result
+
+
+def _cuda_build_from_distribution_version(version: str) -> str | None:
+    """Return an informational CUDA build label from a PyTorch wheel version.
+
+    This is package metadata only: it is not proof that the installed runtime
+    can initialize CUDA on the current host.
+    """
+    match = re.search(r"\+cu(\d{3,4})$", version)
+    if not match:
+        return None
+    digits = match.group(1)
+    if len(digits) == 3:
+        return f"{digits[:2]}.{digits[2]}"
+    return f"{digits[:2]}.{digits[2:]}"

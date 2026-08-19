@@ -15,6 +15,33 @@ runner = CliRunner()
 
 
 class TestDoctorCommand:
+    @pytest.mark.parametrize("arguments, expected_probe", [([], False), (["--deep-pytorch"], True)])
+    def test_doctor_selects_the_requested_pytorch_probe_mode(
+        self, arguments: list[str], expected_probe: bool
+    ) -> None:
+        pytorch_metadata = {
+            "installed": False,
+            "version": None,
+            "cuda_version": None,
+            "cuda_build_metadata": None,
+            "runtime_probed": expected_probe,
+            "cuda_available": False,
+            "device_count": 0,
+            "devices": [],
+            "bf16_support": None,
+            "fp16_support": None,
+            "basic_compute_pass": None,
+            "error": None,
+        }
+        with patch(
+            "nvidia_agent_doctor.integrations.pytorch.check_pytorch",
+            return_value=pytorch_metadata,
+        ) as check_pytorch:
+            result = runner.invoke(app, ["doctor", "--json", *arguments])
+
+        assert result.exit_code in (0, 1, 2, 3)
+        check_pytorch.assert_called_once_with(probe_runtime=expected_probe)
+
     def test_doctor_exits_without_crashing_no_gpu(self) -> None:
         """Doctor should complete successfully even when no NVIDIA GPU is present."""
         with patch("nvidia_agent_doctor.collectors.gpu.nvidia_smi_available", return_value=False):

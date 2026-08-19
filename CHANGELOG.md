@@ -20,6 +20,8 @@ This project uses [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The default doctor now reads PyTorch package metadata without importing the runtime; `--deep-pytorch` explicitly enables CUDA device and bounded compute validation.
+- Driver-reported CUDA maximums are now distinct from local CUDA runtime evidence, preventing `nvidia-smi` capability output from being presented as an installed runtime.
 - Configuration now accepts only settings consumed by the CLI; unsupported legacy/no-op keys fail validation instead of being accepted silently.
 - The README now distinguishes real integrations, static/heuristic detection, and hardware-validated evidence.
 - The doctor command reuses its PyTorch discovery result during CUDA collection to avoid redundant optional-runtime probing.

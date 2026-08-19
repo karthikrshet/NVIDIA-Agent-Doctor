@@ -40,7 +40,9 @@ def test_real_cuda_evidence() -> None:
     cuda = collect_cuda_info()
 
     assert cuda.driver_version, "NVIDIA driver version could not be collected"
-    assert cuda.runtime_version or cuda.toolkit_version, "No CUDA runtime or toolkit evidence found"
+    assert cuda.runtime_version or cuda.toolkit_version or cuda.driver_cuda_max_version, (
+        "No CUDA runtime, toolkit, or driver maximum evidence found"
+    )
 
 
 def test_real_pytorch_cuda_when_installed() -> None:

@@ -220,6 +220,19 @@ def analyze_cuda(cuda_info: CUDAInfo | None = None) -> SectionResult:
             )
         )
 
+    if info.driver_cuda_max_version:
+        section.checks.append(
+            CheckResult(
+                name="cuda_driver_maximum",
+                severity=Severity.PASS,
+                message=f"Driver-reported CUDA maximum: {info.driver_cuda_max_version}",
+                detail=(
+                    "This is the CUDA maximum supported by the detected NVIDIA driver; "
+                    "it does not prove that a matching local CUDA runtime is installed."
+                ),
+            )
+        )
+
     # Compatibility
     if info.compatible is False:
         for note in info.compatibility_notes:
@@ -252,7 +265,10 @@ def analyze_cuda(cuda_info: CUDAInfo | None = None) -> SectionResult:
                     name="cuda_env_vars",
                     severity=Severity.NOT_APPLICABLE,
                     message="CUDA toolkit is not installed; CUDA_HOME/CUDA_PATH are not required",
-                    detail="The detected NVIDIA driver/runtime can operate without a local CUDA toolkit.",
+                    detail=(
+                        "An NVIDIA driver can operate without a local CUDA toolkit. "
+                        "This result does not establish that a local CUDA runtime is installed."
+                    ),
                 )
             )
             return section
@@ -306,9 +322,27 @@ def analyze_pytorch(pytorch_info: dict[str, Any] | None = None) -> SectionResult
             name="pytorch_installed",
             severity=Severity.PASS,
             message=f"PyTorch {info['version']}",
-            detail=f"CUDA build: {info.get('cuda_version') or 'CPU-only'}",
+            detail=(
+                "CUDA build: "
+                f"{info.get('cuda_version') or info.get('cuda_build_metadata') or 'CPU-only'}"
+            ),
         )
     )
+
+    if not info.get("runtime_probed", True):
+        section.checks.append(
+            CheckResult(
+                name="pytorch_runtime",
+                severity=Severity.UNKNOWN,
+                message="PyTorch runtime not initialized during the default doctor check",
+                detail=(
+                    "Package metadata was read without importing PyTorch or initializing CUDA. "
+                    "Use `nad doctor --deep-pytorch` to verify local CUDA devices and run "
+                    "the bounded basic compute check."
+                ),
+            )
+        )
+        return section
 
     if info["cuda_available"]:
         devices = info.get("devices", [])

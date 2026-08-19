@@ -50,6 +50,7 @@ class CUDAInfo(BaseModel):
     toolkit_version: str | None = None
     runtime_version: str | None = None
     driver_version: str | None = None
+    driver_cuda_max_version: str | None = None
     nvcc_path: str | None = None
     nvcc_available: bool = False
     cuda_home: str | None = None

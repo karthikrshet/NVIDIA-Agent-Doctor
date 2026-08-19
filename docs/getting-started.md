@@ -22,8 +22,8 @@ This performs a safe, read-only diagnostic of your environment.
 |-----------|---------------|
 | System | OS, Python version, RAM |
 | GPU | nvidia-smi, VRAM, temperature, utilization |
-| CUDA | Toolkit, runtime, env vars, compatibility |
-| PyTorch | Version, CUDA build, device count, compute test |
+| CUDA | Toolkit, runtime evidence, driver-supported maximum, env vars, compatibility |
+| PyTorch | Installed-wheel metadata by default; CUDA device/count/compute only with `--deep-pytorch` |
 | Docker | Docker daemon, NVIDIA container runtime |
 | Security | Root check, env secrets, SSH key permissions |
 | Compatibility | CUDA/PyTorch/TensorRT version alignment |
@@ -43,6 +43,16 @@ These are informational, not failures.
 
 ```bash
 nad doctor --json
+```
+
+## Explicit PyTorch Runtime Validation
+
+The default doctor does not import PyTorch or initialize CUDA. Use this opt-in
+command when you need real local PyTorch CUDA device and bounded compute
+evidence:
+
+```bash
+nad doctor --deep-pytorch --json
 ```
 
 ## Generate Reports
