@@ -11,6 +11,7 @@ This project uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- A README hero banner with an adjacent independent-project disclaimer.
 - `nad tensorrt check` for local TensorRT Python binding, runtime, and builder probes.
 - `nad triton check` for local Triton indicators and an explicit loopback-only readiness check.
 - Sanitized real-hardware evidence for an RTX 3050 with CUDA-enabled PyTorch.

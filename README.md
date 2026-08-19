@@ -1,3 +1,15 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/karthikrshet/NVIDIA-Agent-Doctor/main/docs/assets/nvidia-agent-doctor-banner.png" alt="NVIDIA Agent Doctor" width="100%">
+</p>
+
+<p align="center">
+  <strong>Diagnose. Secure. Validate. Benchmark. NVIDIA AI Environments.</strong>
+</p>
+
+<p align="center">
+  <sub>Independent open-source project — not affiliated with, endorsed by, or an official product of NVIDIA Corporation.</sub>
+</p>
+
 # NVIDIA Agent Doctor
 
 > An independent, local-first CLI for diagnosing NVIDIA AI environments and reviewing agent, MCP, and skill configuration risk.
