@@ -77,10 +77,18 @@ jobs:
       - name: Run nad doctor
         id: run_doctor
         run: |
-          nad doctor --json > nad-report.json || EXIT_CODE=$?
-          EXIT_CODE=${EXIT_CODE:-0}
+          set +e
+          nad doctor --json > nad-report.json
+          EXIT_CODE=$?
+          set -e
+          python -m json.tool nad-report.json > /dev/null
           echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
           echo "Doctor exit code: $EXIT_CODE"
+          # A warning is useful diagnostic output. Errors, high-security
+          # findings, and invalid configuration must fail the caller job.
+          if [ "$EXIT_CODE" -gt 1 ]; then
+            exit "$EXIT_CODE"
+          fi
         working-directory: target-repository
 
       - name: Parse health score
@@ -97,14 +105,36 @@ jobs:
         working-directory: target-repository
 
       - name: Run security scan
-        run: nad security scan --json > nad-security.json
+        run: |
+          set +e
+          nad security scan --json > nad-security.json
+          EXIT_CODE=$?
+          set -e
+          python -m json.tool nad-security.json > /dev/null
+          # Exit 1 means reviewable warnings. Do not hide errors, high-risk
+          # findings, or invalid configuration with an unconditional success.
+          if [ "$EXIT_CODE" -gt 1 ]; then
+            echo "Security scan failed with exit code: $EXIT_CODE"
+            exit "$EXIT_CODE"
+          fi
+          echo "Security scan exit code: $EXIT_CODE"
         working-directory: target-repository
 
       - name: Scan skills
         if: ${{ inputs.skills_path != '' }}
         env:
           SKILLS_PATH: ${{ inputs.skills_path }}
-        run: nad skills scan "$SKILLS_PATH" --json > nad-skills.json
+        run: |
+          set +e
+          nad skills scan "$SKILLS_PATH" --json > nad-skills.json
+          EXIT_CODE=$?
+          set -e
+          python -m json.tool nad-skills.json > /dev/null
+          if [ "$EXIT_CODE" -gt 1 ]; then
+            echo "Skills scan failed with exit code: $EXIT_CODE"
+            exit "$EXIT_CODE"
+          fi
+          echo "Skills scan exit code: $EXIT_CODE"
         working-directory: target-repository
 
       - name: Fail if GPU required but not found

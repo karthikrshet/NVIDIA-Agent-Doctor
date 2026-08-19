@@ -24,12 +24,17 @@ def test_reusable_workflow_uses_the_report_canonical_health_score() -> None:
     assert "# Calculate score from sections" not in workflow
 
 
-def test_reusable_workflow_does_not_upload_caller_reports_or_hide_scan_failures() -> None:
+def test_reusable_workflow_treats_warnings_as_diagnostics_not_workflow_failures() -> None:
     workflow = _WORKFLOW.read_text(encoding="utf-8")
 
     assert "actions/upload-artifact" not in workflow
     assert "nad security scan --json > nad-security.json || true" not in workflow
     assert 'nad skills scan "$SKILLS_PATH" --json > nad-skills.json || true' not in workflow
+    assert "nad doctor --json > nad-report.json || EXIT_CODE=$?" not in workflow
+    assert "python -m json.tool nad-report.json > /dev/null" in workflow
+    assert "python -m json.tool nad-security.json > /dev/null" in workflow
+    assert "python -m json.tool nad-skills.json > /dev/null" in workflow
+    assert workflow.count('if [ "$EXIT_CODE" -gt 1 ]; then') == 3
 
 
 def test_ci_builds_and_installs_the_distribution_wheel() -> None:
