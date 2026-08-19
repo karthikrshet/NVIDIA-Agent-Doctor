@@ -13,6 +13,12 @@ _FIXTURE = (
     / "recorded_hardware"
     / "rtx3050_windows_driver511_65.json"
 )
+_DOCKER_FIXTURE = (
+    Path(__file__).parents[1]
+    / "fixtures"
+    / "recorded_hardware"
+    / "rtx3050_docker_cuda116_linux.json"
+)
 
 
 def test_recorded_single_gpu_fixture_is_sanitized_real_evidence() -> None:
@@ -35,3 +41,18 @@ def test_recorded_single_gpu_fixture_is_sanitized_real_evidence() -> None:
     assert pytorch["device_count"] == 1
     assert pytorch["compute_capability"] == "8.6"
     assert pytorch["basic_compute_pass"] is True
+
+
+def test_recorded_docker_gpu_fixture_is_sanitized_real_linux_evidence() -> None:
+    fixture = json.loads(_DOCKER_FIXTURE.read_text(encoding="utf-8"))
+
+    assert fixture["provenance"]["kind"] == "sanitized-real-hardware-capture"
+    assert fixture["provenance"]["image"] == "nvidia/cuda:11.6.2-base-ubuntu20.04"
+    assert fixture["gpu_count"] == 1
+    assert fixture["gpus"] == [
+        {
+            "name": "NVIDIA GeForce RTX 3050 Laptop GPU",
+            "driver_version": "511.65",
+            "memory_mb": "4096",
+        }
+    ]

@@ -11,6 +11,7 @@ This project uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `nad docker gpu-check` for an explicit, bounded validation of NVIDIA GPU visibility inside an already-local Docker CUDA image.
 - A README hero banner with an adjacent independent-project disclaimer.
 - `nad tensorrt check` for local TensorRT Python binding, runtime, and builder probes.
 - `nad triton check` for local Triton indicators and an explicit loopback-only readiness check.

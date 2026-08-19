@@ -102,6 +102,7 @@ from nvidia_agent_doctor.cli import benchmark as _bench_mod  # noqa: E402
 from nvidia_agent_doctor.cli import cluster as _cluster_mod  # noqa: E402
 from nvidia_agent_doctor.cli import compatibility as _compat_mod  # noqa: E402
 from nvidia_agent_doctor.cli import cuda as _cuda_mod  # noqa: E402
+from nvidia_agent_doctor.cli import docker as _docker_mod  # noqa: E402
 from nvidia_agent_doctor.cli import doctor as _doctor_mod  # noqa: E402
 from nvidia_agent_doctor.cli import gpu as _gpu_mod  # noqa: E402
 from nvidia_agent_doctor.cli import interactive as _interactive_mod  # noqa: E402
@@ -116,6 +117,7 @@ from nvidia_agent_doctor.cli import tensorrt as _tensorrt_mod  # noqa: E402
 from nvidia_agent_doctor.cli import triton as _triton_mod  # noqa: E402
 
 app.add_typer(_doctor_mod.app, name="doctor")
+app.add_typer(_docker_mod.app, name="docker")
 app.add_typer(_gpu_mod.app, name="gpu")
 app.add_typer(_cuda_mod.app, name="cuda")
 app.add_typer(_sec_mod.app, name="security")

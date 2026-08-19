@@ -9,6 +9,7 @@ nad gpu info
 nad gpu health
 nad cuda check
 nad compatibility check
+nad docker gpu-check --allow-container-run --json
 nad benchmark run --yes --max-memory-mb 128 --timeout-seconds 15
 ```
 
@@ -16,8 +17,14 @@ The hardware test module uses real local `nvidia-smi`, CUDA, and (when present)
 PyTorch data. It skips with `GPU VALIDATION BLOCKED` when `nvidia-smi` is not
 available; a skip is not a passing GPU validation result. TensorRT and Triton
 are recorded as optional runtime evidence and are never simulated. The
-sanitized RTX 3050 fixture also records a successful local PyTorch CUDA basic
-compute check; it does not assert TensorRT, Triton, NIM, or multi-GPU support.
+sanitized RTX 3050 fixtures record a successful local PyTorch CUDA basic
+compute check and a bounded Linux-container GPU visibility probe; they do not
+assert TensorRT, Triton, NIM, or multi-GPU support.
+
+`nad docker gpu-check` never pulls an image. It requires an already-local CUDA
+image plus `--allow-container-run`, then starts one automatically removed,
+network-isolated, read-only container with dropped Linux capabilities and CPU,
+memory, PID, and timeout limits. It runs one `nvidia-smi` inventory query only.
 
 The default `nad doctor` reads PyTorch package metadata only, so it remains
 fast and does not initialize CUDA. The `--deep-pytorch` flag in this runbook is

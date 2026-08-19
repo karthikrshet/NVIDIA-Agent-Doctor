@@ -45,6 +45,7 @@ The default `nad doctor` command is read-only. It checks the local operating sys
 | CUDA | Reads `nvcc`, CUDA environment variables, driver evidence, and an installed PyTorch CUDA build when present. The `nvidia-smi` CUDA value is reported only as the driver's supported maximum—not as proof of a local runtime. Driver compatibility is limited to documented CUDA major-family minimums. | Real local integration; not a full support matrix |
 | PyTorch | The default doctor reads installed-wheel metadata only. `--deep-pytorch` imports the package, checks CUDA availability/devices, and performs one tiny GPU dot product. | Metadata-only by default; real local integration when explicitly requested |
 | Docker | Detects Docker and NVIDIA container-runtime indicators. | Local detection |
+| Docker GPU container | With explicit consent, runs one bounded `nvidia-smi` query in an already-local CUDA image. It never pulls images, enables networking, benchmarks, or persists a container. | Real local integration when explicitly requested |
 | TensorRT | Checks whether the local Python package imports and whether basic builder/runtime indicators are present. | Partial local detection |
 | Triton Inference Server | Checks binary, process, and container indicators; optionally calls the documented loopback readiness endpoint after explicit consent. It never sends inference. | Heuristic detection plus limited local integration |
 | NeMo, Nemotron, NemoClaw | Checks package, CLI, and configured local indicators. | Heuristic detection |
@@ -103,6 +104,7 @@ nad gpu info --json
 nad gpu health --json
 nad cuda check --json
 nad compatibility check --json
+nad docker gpu-check --allow-container-run --json
 
 # Optional local runtime probes; absence is reported as optional
 nad tensorrt check --json
@@ -172,6 +174,14 @@ nad benchmark run --yes --max-memory-mb 128 --timeout-seconds 15
 
 Results are measured on the current machine and workload only. They are not fabricated, are not hardware specifications, and should not be compared across unrelated configurations. A timeout produces exit code `2`; GPU memory references are cleaned up on success and failure.
 
+### Validate Docker GPU access safely
+
+The following command uses only an image already present on the local Docker daemon. It does not pull an image. With explicit consent it starts one automatically removed, network-isolated, read-only container with dropped capabilities and strict CPU, memory, PID, and timeout limits.
+
+```bash
+nad docker gpu-check --allow-container-run --json
+```
+
 ### Query a local NIM service safely
 
 ```bash
@@ -217,6 +227,7 @@ The cluster command does not edit workloads, policies, or contexts. Confirm that
 | `nad doctor --ai-explain --allow-model-request --model NAME` | Requests a local Ollama explanation | Only a validated loopback endpoint is allowed |
 | `nad gpu info` / `nad gpu health` | NVIDIA GPU inventory and health | Read-only `nvidia-smi` calls |
 | `nad cuda check` | CUDA toolkit/runtime/environment evidence | Read-only |
+| `nad docker gpu-check` | Bounded GPU visibility check in an already-local CUDA image | Requires `--allow-container-run`; never pulls images |
 | `nad compatibility check` | GPU, driver, CUDA, PyTorch, TensorRT evidence | Read-only; does not invent a support matrix |
 | `nad tensorrt check` | TensorRT Python binding, runtime, and builder-object probe | Does not build an engine or claim CUDA support-matrix compatibility |
 | `nad triton check` | Local Triton binary/client/process indicators and optional readiness | One local GET only with `--allow-local-request`; never loads a model or runs inference |
