@@ -156,9 +156,16 @@ nad report generate --format json --output nad-report.json
 nad report generate --format markdown --output nad-report.md
 nad report generate --format html --output nad-report.html
 nad report generate --format compliance-audit --output readiness.md
+
+# Return exit code 1 when the current report regresses from a baseline
+nad report compare baseline.json current.json --json
 ```
 
 JSON, Markdown, HTML, terminal, and compliance-audit renderers apply the project’s credential redaction boundary. Reports still contain environment facts such as operating-system and hardware information. Review reports before sharing them externally.
+
+`nad report compare` reads two bounded local NAD JSON reports and compares only
+their validated summary values. It never uploads, renders, or repeats the full
+report contents; a regression returns exit code `1` for CI gating.
 
 ### Run a safe, bounded benchmark
 
@@ -228,6 +235,7 @@ The cluster command does not edit workloads, policies, or contexts. Confirm that
 | `nad gpu info` / `nad gpu health` | NVIDIA GPU inventory and health | Read-only `nvidia-smi` calls |
 | `nad cuda check` | CUDA toolkit/runtime/environment evidence | Read-only |
 | `nad docker gpu-check` | Bounded GPU visibility check in an already-local CUDA image | Requires `--allow-container-run`; never pulls images |
+| `nad report compare` | Detects health, error, and high-security regressions between two NAD JSON reports | Reads bounded local JSON only; never uploads report data |
 | `nad compatibility check` | GPU, driver, CUDA, PyTorch, TensorRT evidence | Read-only; does not invent a support matrix |
 | `nad tensorrt check` | TensorRT Python binding, runtime, and builder-object probe | Does not build an engine or claim CUDA support-matrix compatibility |
 | `nad triton check` | Local Triton binary/client/process indicators and optional readiness | One local GET only with `--allow-local-request`; never loads a model or runs inference |

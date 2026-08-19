@@ -11,6 +11,7 @@ This project uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `nad report compare` to detect health-score, diagnostic-error, and high-security regressions between two local NAD JSON reports.
 - `nad docker gpu-check` for an explicit, bounded validation of NVIDIA GPU visibility inside an already-local Docker CUDA image.
 - A README hero banner with an adjacent independent-project disclaimer.
 - `nad tensorrt check` for local TensorRT Python binding, runtime, and builder probes.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import typer
@@ -78,6 +79,35 @@ def generate(
 
     if report.exit_code:
         raise typer.Exit(code=report.exit_code)
+
+
+@app.command("compare")
+def compare(
+    baseline: Path = typer.Argument(..., help="Earlier NAD JSON report."),
+    current: Path = typer.Argument(..., help="Newer NAD JSON report."),
+    json_output: bool = typer.Option(False, "--json", help="Output comparison as JSON."),
+) -> None:
+    """Compare report summaries and return a warning on a regression."""
+    from nvidia_agent_doctor.reports.comparison import ReportComparisonError, compare_report_files
+    from nvidia_agent_doctor.security.credentials import redact_data
+
+    try:
+        result = redact_data(compare_report_files(baseline, current))
+    except ReportComparisonError as exc:
+        raise typer.BadParameter(str(exc), param_hint="REPORT") from exc
+
+    if json_output:
+        typer.echo(json.dumps(result, indent=2, sort_keys=True))
+    else:
+        typer.echo(f"Comparison status: {result['status']}")
+        typer.echo(
+            f"Health score: {result['baseline']['overall_score']} -> "
+            f"{result['current']['overall_score']} ({result['score_delta']:+d})"
+        )
+        for message in result["regressions"] + result["improvements"]:
+            typer.echo(f"- {message}")
+    if result["status"] == "regressed":
+        raise typer.Exit(code=1)
 
 
 def _write_report(output: Path, content: str, label: str, console: Console) -> None:
