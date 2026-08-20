@@ -32,6 +32,8 @@
 - [Results, scores, and exit codes](#results-scores-and-exit-codes)
 - [Security and privacy model](#security-and-privacy-model)
 - [Real hardware validation](#real-hardware-validation)
+- [Optional runtime validation](#optional-runtime-validation)
+- [Troubleshooting](#troubleshooting)
 - [Scope and limitations](#scope-and-limitations)
 - [Development](#development)
 
@@ -87,6 +89,10 @@ For development tools and the test suite:
 ```bash
 python -m pip install -e ".[dev]"
 ```
+
+For an isolated, non-editable local installation from a checkout, replace
+`-e .` with `.`. Installation never installs or upgrades NVIDIA drivers, CUDA,
+Docker, TensorRT, Triton, NIM, or any system service.
 
 On a CPU-only machine, `nad doctor` completes normally and reports GPU-specific components as unavailable or optional. It never fabricates a GPU result.
 
@@ -259,7 +265,7 @@ The cluster command does not edit workloads, policies, or contexts. Confirm that
 | `nad nemotron nim` | Optional local NIM readiness check | No request without explicit consent |
 | `nad cluster scan` | Optional Kubernetes health inventory | No cluster request without explicit consent |
 | `nad benchmark run` | Bounded performance measurement | Never automatic; confirmation required |
-| `nad report generate` | Terminal, JSON, Markdown, HTML, or readiness report | Writes a file only when requested or for default HTML output |
+| `nad report generate` | Terminal, JSON, Markdown, HTML, or compliance-audit report | Writes to stdout by default; writes a file only with `--output` |
 | `nad interactive` | Guided Rich terminal console | Not a live dashboard; no benchmark |
 
 For all options, use `nad <command> --help`. Global options must appear before the subcommand, for example:
@@ -298,6 +304,53 @@ scan_depth = 3
 ```
 
 Unsupported settings are rejected rather than retained as no-ops. Explicit CLI consent flags remain required for operations that could contact local services or a Kubernetes cluster.
+
+## Optional runtime validation
+
+NAD verifies software that you have already installed or deployed. It does not install runtimes, start containers, download models, build inference engines, or alter a driver to make a check pass. A detected package, client library, or binary is not evidence that a production service is ready.
+
+### TensorRT
+
+```bash
+nad tensorrt check --json
+```
+
+This imports the local Python binding, when present, and performs bounded runtime and builder-object probes. It does not build an engine, load a model, or make a CUDA-version compatibility claim beyond the evidence collected. Confirm a deployment against NVIDIA's [TensorRT prerequisites](https://docs.nvidia.com/deeplearning/tensorrt/latest/installing-tensorrt/prerequisites.html) and [support matrix](https://docs.nvidia.com/deeplearning/tensorrt/latest/getting-started/support-matrix.html).
+
+### Triton Inference Server
+
+```bash
+# Local indicators only; this does not make an HTTP request.
+nad triton check --json
+
+# One read-only readiness request to a loopback server you have already started.
+nad triton check --allow-local-request --endpoint http://127.0.0.1:8000 --json
+```
+
+The optional request is restricted to Triton's documented `/v2/health/ready` endpoint on a loopback URL. It confirms readiness only: it does not load a model, send inference input, or establish throughput. Follow NVIDIA's [Triton quickstart](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/getting_started/quick_start.html) to deploy and validate a real server. A detected `tritonclient` package is a client-library signal, not server validation.
+
+### NVIDIA NIM
+
+```bash
+# Read-only loopback readiness request; no request without explicit consent.
+nad nemotron nim --allow-local-request --json
+
+# Optional loopback model-list query; never invokes a model.
+nad nemotron nim --allow-local-request --models --json
+```
+
+NIM requests are limited to validated loopback endpoints and reject remote, credential-bearing, query-string, and fragment URLs. NAD cannot prove that a NIM deployment is correctly configured from a package check. Use NVIDIA's [NIM prerequisites](https://docs.nvidia.com/nim/large-language-models/latest/get-started/prerequisites.html) before deploying one.
+
+### Manual Linux GPU validation in GitHub Actions
+
+The repository includes a manually dispatched, self-hosted GPU workflow. It is intentionally separate from normal hosted CI, which must work without a GPU. On an authorized Linux GPU runner labelled `self-hosted`, `linux`, and `gpu`:
+
+1. Install the driver, CUDA-dependent software, and any Triton/NIM deployment yourself.
+2. Run the commands in the [hardware validation runbook](docs/hardware-validation.md).
+3. Dispatch **NVIDIA Hardware Validation** with optional TensorRT, Triton, and NIM gates only when the corresponding real runtime or loopback service exists.
+4. Sanitize resulting evidence before adding fixtures; never commit IDs, hostnames, credentials, or model/request data.
+
+This workflow does not provision a GPU, pull a container, or simulate a passing NVIDIA integration.
 
 ## Results, scores, and exit codes
 
@@ -356,6 +409,7 @@ This validates the listed machine and its Docker Desktop Linux-container path on
 | Multi-GPU behavior | Unverified | Only one GPU is available on the authorized host |
 | CUDA/driver mismatch execution | Unverified | No authorized mismatched runtime environment is available; compatibility code is unit-tested only |
 | TensorRT runtime and builder | Not installed | No local TensorRT installation or authorized deployment is available |
+| Triton Python client detection | Verified, limited | A real `tritonclient` package was imported in an isolated validation environment; this is not evidence of a Triton server |
 | Triton readiness endpoint | Unavailable | Explicit loopback readiness request found no running server |
 | NIM readiness endpoint | Unavailable | Explicit loopback readiness request was refused; no NIM deployment is configured |
 | OpenShell and Kubernetes | Heuristic/opt-in | No authorized runtime or cluster is configured |
@@ -382,6 +436,20 @@ nad benchmark run --gpu-only --yes --max-memory-mb 16 --timeout-seconds 15 --jso
 ```
 
 See the [hardware validation runbook](docs/hardware-validation.md) and [sanitized fixture rules](tests/fixtures/recorded_hardware/README.md) before adding a fixture. Never commit hostnames, UUIDs, PCI identifiers, timestamps, credentials, model data, or dynamic workload output.
+
+## Troubleshooting
+
+| Observation | Meaning and safe next step |
+|---|---|
+| `nvidia-smi` is unavailable | NAD cannot inspect GPU hardware without a working driver utility. Check the driver installation and `PATH`; NAD will not install or repair a driver. |
+| Driver CUDA and `nvcc`/PyTorch CUDA values differ | They describe different layers: the driver-supported maximum, an installed toolkit, and the CUDA build used by a Python wheel. Run `nad cuda check --json`; do not treat a matching number as a full support guarantee. |
+| `nad triton check --allow-local-request` returns `1` | The requested loopback server was unavailable or not ready. NAD did not start it. Check your server deployment and endpoint before retrying. |
+| `nad nemotron nim --allow-local-request` returns `1` | The local NIM endpoint did not respond as ready. NAD did not deploy or configure NIM. Inspect the service locally and use the documented NIM prerequisites. |
+| `nad benchmark run` returns `2` | The explicit measurement failed or timed out. Lower `--max-memory-mb`, retain a bounded timeout, and inspect the rendered error; NAD releases its own temporary allocations on success and failure. |
+| A command returns `4` | A configuration file was malformed, contained an unsupported key/value, or an explicit `--config` path was missing. Correct the file; NAD intentionally does not substitute defaults in this case. |
+| A report contains sensitive local context | Redaction protects recognised secret patterns, but review every generated report before sharing it. Use `nad security leak-check` to run deterministic redaction regressions. |
+
+For a reproducible issue report, include `nad --version`, the command line with credentials removed, the exit code, and a sanitized JSON report only when safe to share. See [SECURITY.md](SECURITY.md) for confidential vulnerability reporting.
 
 ## Scope and limitations
 
