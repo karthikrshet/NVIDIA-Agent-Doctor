@@ -30,10 +30,28 @@ jobs:
           python -m pip install build
           python -m build
 
-      - name: Install built wheel and verify CLI entry point
+      - name: Install built wheel in a clean environment and smoke-test CLI
         run: |
-          python -m pip install --force-reinstall dist/*.whl
-          nad --version
+          python -m venv .package-wheel-env
+          .package-wheel-env/bin/python -m pip install --upgrade pip
+          .package-wheel-env/bin/python -m pip install --force-reinstall dist/*.whl
+          .package-wheel-env/bin/nad --version
+          set +e
+          .package-wheel-env/bin/nad doctor --json > wheel-doctor.json
+          EXIT_CODE=$?
+          set -e
+          if [ "$EXIT_CODE" -gt 2 ]; then
+            echo "Installed wheel doctor smoke test failed: $EXIT_CODE"
+            exit "$EXIT_CODE"
+          fi
+          .package-wheel-env/bin/python -m json.tool wheel-doctor.json > /dev/null
+
+      - name: Install source distribution in a clean environment and verify CLI entry point
+        run: |
+          python -m venv .package-sdist-env
+          .package-sdist-env/bin/python -m pip install --upgrade pip
+          .package-sdist-env/bin/python -m pip install --force-reinstall dist/*.tar.gz
+          .package-sdist-env/bin/nad --version
 
   test:
     name: Test (Python ${{ matrix.python-version }}, ${{ matrix.os }})

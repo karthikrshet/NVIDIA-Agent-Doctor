@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="627" viewBox="0 0 1200 627" role="img" aria-labelledby="title description">
+  <title id="title">NVIDIA Agent Doctor — independent open-source public alpha</title>
+  <desc id="description">A dark green LinkedIn launch graphic summarizing NVIDIA Agent Doctor's diagnostic, security, compatibility, and reporting capabilities.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#07130d"/>
+      <stop offset="1" stop-color="#030805"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#b9ff57"/>
+      <stop offset="1" stop-color="#55db2f"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <pattern id="grid" width="38" height="38" patternUnits="userSpaceOnUse">
+      <path d="M 38 0 L 0 0 0 38" fill="none" stroke="#a9ff5b" stroke-opacity=".055" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="627" fill="url(#background)"/>
+  <rect width="1200" height="627" fill="url(#grid)"/>
+  <circle cx="1080" cy="85" r="240" fill="#6ade30" fill-opacity=".055"/>
+  <circle cx="1010" cy="585" r="245" fill="#59e039" fill-opacity=".035"/>
+
+  <g transform="translate(70 73)">
+    <rect x="0" y="0" width="66" height="66" rx="18" fill="#101f13" stroke="#a9ff5b" stroke-width="2"/>
+    <path d="M33 13 L51 19 V32 C51 44 43 52 33 56 C23 52 15 44 15 32 V19 Z" fill="none" stroke="#b9ff57" stroke-width="3"/>
+    <path d="M23 34 H29 L33 25 L38 41 L42 34 H47" fill="none" stroke="#b9ff57" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="158" y="104" fill="#f5fff1" font-family="Arial, Helvetica, sans-serif" font-size="39" font-weight="700" letter-spacing="1.5">NVIDIA AGENT DOCTOR</text>
+  <text x="160" y="137" fill="#9cf44e" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" letter-spacing="2.1">INDEPENDENT OPEN-SOURCE • PUBLIC ALPHA</text>
+
+  <text x="70" y="212" fill="#f5fff1" font-family="Arial, Helvetica, sans-serif" font-size="47" font-weight="700">Understand your NVIDIA AI environment.</text>
+  <text x="70" y="258" fill="#c5cec4" font-family="Arial, Helvetica, sans-serif" font-size="25">Diagnose configuration issues. Review security. Produce evidence-based reports.</text>
+
+  <g transform="translate(70 315)">
+    <g>
+      <rect width="232" height="119" rx="16" fill="#0c1a0f" stroke="#335b32"/>
+      <circle cx="32" cy="32" r="15" fill="#17391c"/>
+      <path d="M24 32 H40 M32 24 V40" stroke="#b9ff57" stroke-width="2.5" stroke-linecap="round"/>
+      <text x="58" y="38" fill="#f5fff1" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">DIAGNOSE</text>
+      <text x="23" y="78" fill="#afbaad" font-family="Arial, Helvetica, sans-serif" font-size="15">GPU • CUDA • PyTorch</text>
+      <text x="23" y="101" fill="#afbaad" font-family="Arial, Helvetica, sans-serif" font-size="15">Drivers • Docker</text>
+    </g>
+    <g transform="translate(251 0)">
+      <rect width="232" height="119" rx="16" fill="#0c1a0f" stroke="#335b32"/>
+      <circle cx="32" cy="32" r="15" fill="#17391c"/>
+      <path d="M24 31 V27 A8 8 0 0 1 40 27 V31 M22 31 H42 V42 H22 Z" fill="none" stroke="#b9ff57" stroke-width="2.5" stroke-linejoin="round"/>
+      <text x="58" y="38" fill="#f5fff1" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">SECURE</text>
+      <text x="23" y="78" fill="#afbaad" font-family="Arial, Helvetica, sans-serif" font-size="15">MCP • Agent skills</text>
+      <text x="23" y="101" fill="#afbaad" font-family="Arial, Helvetica, sans-serif" font-size="15">Secrets redacted</text>
+    </g>
+    <g transform="translate(502 0)">
+      <rect width="232" height="119" rx="16" fill="#0c1a0f" stroke="#335b32"/>
+      <circle cx="32" cy="32" r="15" fill="#17391c"/>
+      <path d="M24 33 L30 39 L41 25" fill="none" stroke="#b9ff57" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="58" y="38" fill="#f5fff1" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">VALIDATE</text>
+      <text x="23" y="78" fill="#afbaad" font-family="Arial, Helvetica, sans-serif" font-size="15">Compatibility checks</text>
+      <text x="23" y="101" fill="#afbaad" font-family="Arial, Helvetica, sans-serif" font-size="15">Bounded benchmarks</text>
+    </g>
+    <g transform="translate(753 0)">
+      <rect width="307" height="119" rx="16" fill="#0c1a0f" stroke="#335b32"/>
+      <circle cx="32" cy="32" r="15" fill="#17391c"/>
+      <path d="M27 23 H38 L43 28 V42 H27 Z M38 23 V29 H43" fill="none" stroke="#b9ff57" stroke-width="2.3" stroke-linejoin="round"/>
+      <text x="58" y="38" fill="#f5fff1" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">REPORT</text>
+      <text x="23" y="78" fill="#afbaad" font-family="Arial, Helvetica, sans-serif" font-size="15">Terminal • JSON • Markdown</text>
+      <text x="23" y="101" fill="#afbaad" font-family="Arial, Helvetica, sans-serif" font-size="15">HTML • Compliance audit</text>
+    </g>
+  </g>
+
+  <g transform="translate(70 480)">
+    <rect width="1060" height="70" rx="14" fill="#07120a" stroke="#487b42"/>
+    <circle cx="32" cy="35" r="6" fill="#b9ff57" filter="url(#glow)"/>
+    <text x="53" y="41" fill="#caff89" font-family="Consolas, 'Courier New', monospace" font-size="19" font-weight="700">nad doctor --json</text>
+    <text x="338" y="41" fill="#d4dbd3" font-family="Arial, Helvetica, sans-serif" font-size="17">Local-first diagnostics • No telemetry • Explicit actions only</text>
+  </g>
+
+  <path d="M70 585 H1130" stroke="url(#accent)" stroke-width="2" stroke-opacity=".8"/>
+  <text x="70" y="612" fill="#9eb19b" font-family="Arial, Helvetica, sans-serif" font-size="14">github.com/karthikrshet/NVIDIA-Agent-Doctor</text>
+  <text x="1130" y="612" text-anchor="end" fill="#9eb19b" font-family="Arial, Helvetica, sans-serif" font-size="12">Not affiliated with or endorsed by NVIDIA Corporation.</text>
+</svg>
