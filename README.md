@@ -102,6 +102,7 @@ nad doctor --json
 # Targeted GPU and CUDA evidence
 nad gpu info --json
 nad gpu health --json
+nad gpu topology --json  # driver-supported GPU-to-GPU link classes only
 nad cuda check --json
 nad compatibility check --json
 nad docker gpu-check --allow-container-run --json
@@ -240,6 +241,7 @@ The cluster command does not edit workloads, policies, or contexts. Confirm that
 | `nad doctor --auto-resolve` | Produces a review-only remediation plan | Does not install, modify, or execute fixes |
 | `nad doctor --ai-explain --allow-model-request --model NAME` | Requests a local Ollama explanation | Only a validated loopback endpoint is allowed |
 | `nad gpu info` / `nad gpu health` | NVIDIA GPU inventory and health | Read-only `nvidia-smi` calls |
+| `nad gpu topology` | GPU-to-GPU interconnect classes from `nvidia-smi topo -m`, when supported by the installed driver. CPU affinity, PCI identifiers, and raw command output are deliberately excluded. | Optional local integration |
 | `nad cuda check` | CUDA toolkit/runtime/environment evidence | Read-only |
 | `nad docker gpu-check` | Bounded GPU visibility check in an already-local CUDA image | Requires `--allow-container-run`; never pulls images |
 | `nad report compare` | Detects health, error, and high-security regressions between two NAD JSON reports | Reads bounded local JSON only; never uploads report data |

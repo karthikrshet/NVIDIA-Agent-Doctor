@@ -126,3 +126,46 @@ def gpu_health(
 
     if section.exit_code:
         raise typer.Exit(code=section.exit_code)
+
+
+@app.command("topology")
+def gpu_topology(
+    json_output: bool = typer.Option(False, "--json"),
+) -> None:
+    """Show supported GPU-to-GPU topology without exposing host affinity data."""
+    import json
+
+    from nvidia_agent_doctor.collectors.gpu import collect_gpu_topology
+
+    result = collect_gpu_topology()
+    if json_output:
+        typer.echo(json.dumps(result, indent=2))
+        return
+
+    console = Console()
+    if result["status"] != "available":
+        console.print(f"[yellow]{result['reason']}[/yellow]")
+        console.print(
+            "[dim]Topology is optional and depends on the installed NVIDIA driver. "
+            "No raw topology output, CPU affinity, or PCI identifiers are displayed.[/dim]"
+        )
+        return
+
+    console.print(f"[bold]GPU topology:[/bold] {result['gpu_count']} GPU(s)")
+    links = result["links"]
+    if not links:
+        console.print(
+            "[dim]No GPU-to-GPU interconnects reported (single GPU or no matrix links).[/dim]"
+        )
+        return
+
+    table = Table(box=box.ROUNDED, border_style="bright_blue")
+    table.add_column("From", style="bold")
+    table.add_column("To", style="bold")
+    table.add_column("Link class")
+    for link in links:
+        table.add_row(link["from"], link["to"], link["link"])
+    console.print(table)
+    console.print(
+        "[dim]Link classes come from nvidia-smi; this command does not infer PCIe or NVLink topology.[/dim]"
+    )

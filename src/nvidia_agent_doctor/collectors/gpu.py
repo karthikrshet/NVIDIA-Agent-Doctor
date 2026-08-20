@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
+from typing import Any
 
 from defusedxml import ElementTree
 
 from nvidia_agent_doctor.core.models import GPUInfo
+
+_TOPOLOGY_GPU_LABEL = re.compile(r"^GPU\d+$")
+_TOPOLOGY_LINK = re.compile(r"^(?:X|SYS|NODE|PHB|PXB|PIX|NV\d+)$")
+_MAX_TOPOLOGY_OUTPUT_BYTES = 64 * 1024
 
 
 def collect_gpu_info() -> list[GPUInfo] | None:
@@ -45,6 +51,114 @@ def nvidia_smi_available() -> bool:
         return result.returncode == 0 and bool(result.stdout.strip())
     except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
         return False
+
+
+def collect_gpu_topology() -> dict[str, Any]:
+    """Return a privacy-preserving GPU topology summary when supported.
+
+    ``nvidia-smi topo -m`` is a version-dependent capability.  The command's
+    raw output can include CPU affinity and PCI-related information, neither
+    of which belongs in a diagnostic report by default.  This collector keeps
+    only GPU labels and documented GPU-to-GPU link classes.
+
+    A missing or unsupported command is an informational capability state,
+    not evidence that GPU hardware is unhealthy.  The returned result is safe
+    to render directly because command stderr and unparsed stdout are never
+    included.
+    """
+    smi_path = shutil.which("nvidia-smi")
+    if smi_path is None:
+        return {
+            "status": "not_installed",
+            "reason": "nvidia-smi is unavailable.",
+            "gpu_count": 0,
+            "gpu_labels": [],
+            "links": [],
+        }
+
+    try:
+        result = subprocess.run(
+            [smi_path, "topo", "-m"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return _topology_unavailable("nvidia-smi topology query timed out.")
+    except (FileNotFoundError, OSError):
+        return _topology_unavailable("nvidia-smi topology query is unavailable.")
+
+    if result.returncode != 0:
+        return _topology_unavailable("nvidia-smi topology query is unavailable on this driver.")
+    if len(result.stdout.encode("utf-8", errors="replace")) > _MAX_TOPOLOGY_OUTPUT_BYTES:
+        return _topology_unavailable("nvidia-smi returned an oversized topology response.")
+
+    parsed = _parse_nvidia_smi_topology(result.stdout)
+    if parsed is None:
+        return _topology_unavailable("nvidia-smi returned an unsupported topology format.")
+    return parsed
+
+
+def _topology_unavailable(reason: str) -> dict[str, Any]:
+    """Build a stable, non-sensitive unsupported-topology response."""
+    return {
+        "status": "unavailable",
+        "reason": reason,
+        "gpu_count": 0,
+        "gpu_labels": [],
+        "links": [],
+    }
+
+
+def _parse_nvidia_smi_topology(output: str) -> dict[str, Any] | None:
+    """Parse only the GPU matrix portion of ``nvidia-smi topo -m`` output.
+
+    CPU affinity, NUMA, PCI, and legend text are intentionally discarded.
+    Link values are allow-listed from NVIDIA's documented topology matrix
+    notation instead of passing through arbitrary subprocess output.
+    """
+    lines = output.splitlines()
+    header_index: int | None = None
+    gpu_labels: list[str] = []
+    for index, line in enumerate(lines):
+        labels = [token for token in line.split() if _TOPOLOGY_GPU_LABEL.fullmatch(token)]
+        if labels:
+            header_index = index
+            gpu_labels = labels
+            break
+    if header_index is None:
+        return None
+
+    links: list[dict[str, str]] = []
+    rows_seen: set[str] = set()
+    for line in lines[header_index + 1 :]:
+        tokens = line.split()
+        if not tokens:
+            continue
+        source = tokens[0]
+        if source.lower() == "legend:":
+            break
+        if not _TOPOLOGY_GPU_LABEL.fullmatch(source):
+            continue
+        link_values = tokens[1 : len(gpu_labels) + 1]
+        if len(link_values) != len(gpu_labels):
+            continue
+        rows_seen.add(source)
+        for destination, link in zip(gpu_labels, link_values, strict=True):
+            if source != destination and _TOPOLOGY_LINK.fullmatch(link):
+                links.append({"from": source, "to": destination, "link": link})
+
+    if not rows_seen:
+        return None
+
+    return {
+        "status": "available",
+        "reason": None,
+        "gpu_count": len(gpu_labels),
+        "gpu_labels": gpu_labels,
+        "links": links,
+    }
 
 
 def _run_nvidia_smi_xml() -> str | None:

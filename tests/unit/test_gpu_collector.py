@@ -9,8 +9,10 @@ import pytest
 from defusedxml.common import DefusedXmlException
 
 from nvidia_agent_doctor.collectors.gpu import (
+    _parse_nvidia_smi_topology,
     _parse_nvidia_smi_xml,
     collect_gpu_info,
+    collect_gpu_topology,
     get_nvidia_smi_version,
     nvidia_smi_available,
 )
@@ -145,3 +147,65 @@ class TestCollectGpuInfo:
             timeout=10,
             check=False,
         )
+
+
+class TestGpuTopology:
+    def test_parses_multi_gpu_links_without_host_affinity_or_pci_details(self) -> None:
+        topology = """
+                GPU0    GPU1    CPU Affinity    NUMA Affinity   GPU NUMA ID
+        GPU0     X      NV2     0-31            0               N/A
+        GPU1    NV2      X      0-31            0               N/A
+
+        Legend:
+          NV# = Connection traversing # NVLink bridges
+        """
+
+        result = _parse_nvidia_smi_topology(topology)
+
+        assert result == {
+            "status": "available",
+            "reason": None,
+            "gpu_count": 2,
+            "gpu_labels": ["GPU0", "GPU1"],
+            "links": [
+                {"from": "GPU0", "to": "GPU1", "link": "NV2"},
+                {"from": "GPU1", "to": "GPU0", "link": "NV2"},
+            ],
+        }
+        rendered = str(result)
+        assert "0-31" not in rendered
+        assert "NUMA" not in rendered
+
+    def test_rejects_a_header_without_a_topology_matrix_row(self) -> None:
+        assert _parse_nvidia_smi_topology("GPU0 GPU1 CPU Affinity\n") is None
+
+    def test_missing_nvidia_smi_is_an_explicit_capability_state(self) -> None:
+        with patch("nvidia_agent_doctor.collectors.gpu.shutil.which", return_value=None):
+            with patch("nvidia_agent_doctor.collectors.gpu.subprocess.run") as run:
+                result = collect_gpu_topology()
+
+        assert result == {
+            "status": "not_installed",
+            "reason": "nvidia-smi is unavailable.",
+            "gpu_count": 0,
+            "gpu_labels": [],
+            "links": [],
+        }
+        run.assert_not_called()
+
+    def test_unavailable_topology_does_not_return_sensitive_stderr(self) -> None:
+        command_result = MagicMock(
+            returncode=1,
+            stdout="",
+            stderr="API_KEY=super-secret-value and 00000000:01:00.0",
+        )
+        with patch("nvidia_agent_doctor.collectors.gpu.shutil.which", return_value="nvidia-smi"):
+            with patch(
+                "nvidia_agent_doctor.collectors.gpu.subprocess.run", return_value=command_result
+            ):
+                result = collect_gpu_topology()
+
+        assert result["status"] == "unavailable"
+        assert result["reason"] == "nvidia-smi topology query is unavailable on this driver."
+        assert "super-secret-value" not in str(result)
+        assert "00000000" not in str(result)
