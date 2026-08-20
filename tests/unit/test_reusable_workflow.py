@@ -62,6 +62,17 @@ def test_manual_gpu_workflow_is_trusted_bounded_and_no_artifact() -> None:
     assert "contents: read" in workflow
     assert "persist-credentials: false" in workflow
     assert "pytest tests/hardware -m gpu" in workflow
+    assert "NAD_REQUIRE_TENSORRT: ${{ inputs.validate-tensorrt }}" in workflow
+    assert "NAD_TRITON_ENDPOINT: ${{ inputs.triton-endpoint }}" in workflow
+    assert "NAD_NIM_ENDPOINT: ${{ inputs.nim-endpoint }}" in workflow
+    assert '"$NAD_TRITON_ENDPOINT"' in workflow
+    assert '"$NAD_NIM_ENDPOINT"' in workflow
+    assert "nad gpu topology" in workflow
+    assert "nad tensorrt check --json" in workflow
+    assert "nad triton check --allow-local-request" in workflow
+    assert "nad nemotron nim --allow-local-request" in workflow
+    assert 'echo "Required runtime validation failed with exit code $status."' in workflow
+    assert "$*" not in workflow
     assert '--max-memory-mb "$NAD_BENCHMARK_MAX_MEMORY_MB"' in workflow
     assert '--timeout-seconds "$NAD_BENCHMARK_TIMEOUT_SECONDS"' in workflow
     assert "actions/upload-artifact" not in workflow

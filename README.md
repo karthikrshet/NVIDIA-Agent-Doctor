@@ -362,7 +362,9 @@ This validates the listed machine and its Docker Desktop Linux-container path on
 
 `Verified` means a real command ran against the named environment. `Unverified`,
 `Not installed`, and `Unavailable` are not failures invented by the tool; they
-are deliberate limits on what this repository claims.
+are deliberate limits on what this repository claims. The manual GPU workflow
+can require a real TensorRT runtime and configured loopback Triton/NIM readiness
+endpoints; it does not install, start, or simulate any of them.
 
 Run the same evidence-based checks on an authorized GPU host:
 
@@ -371,6 +373,7 @@ pytest tests/hardware -m gpu -v --tb=short
 nad doctor --json --profile
 nad gpu info --json
 nad gpu health --json
+nad gpu topology --json
 nad cuda check --json
 nad compatibility check --json
 nad docker gpu-check --allow-container-run --json

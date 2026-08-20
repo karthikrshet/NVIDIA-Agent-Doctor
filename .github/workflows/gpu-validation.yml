@@ -21,6 +21,21 @@ on:
         required: true
         default: "15"
         type: string
+      validate-tensorrt:
+        description: Require a locally installed, usable TensorRT Python runtime
+        required: true
+        default: false
+        type: boolean
+      triton-endpoint:
+        description: Optional validated loopback Triton HTTP base endpoint
+        required: false
+        default: ""
+        type: string
+      nim-endpoint:
+        description: Optional validated loopback NIM HTTP base endpoint
+        required: false
+        default: ""
+        type: string
 
 # This workflow is intentionally manual and requires a runner explicitly
 # labelled `gpu`. It never runs untrusted pull-request code on a GPU host.
@@ -32,6 +47,13 @@ jobs:
     name: Validate real NVIDIA hardware
     runs-on: [self-hosted, linux, x64, gpu]
     timeout-minutes: 15
+    env:
+      # Inputs are passed through environment variables, never interpolated
+      # into shell source. The NAD commands validate endpoint shape and allow
+      # only loopback HTTP(S) destinations before making any request.
+      NAD_REQUIRE_TENSORRT: ${{ inputs.validate-tensorrt }}
+      NAD_TRITON_ENDPOINT: ${{ inputs.triton-endpoint }}
+      NAD_NIM_ENDPOINT: ${{ inputs.nim-endpoint }}
 
     steps:
       - name: Check out source without retaining credentials
@@ -60,15 +82,49 @@ jobs:
             status=$?
             set -e
             if [ "$status" -gt 1 ]; then
-              echo "Unexpected diagnostic exit code $status: $*"
+              # Do not echo "$@": command arguments must never be copied
+              # into workflow logs, even if the current callers are fixed.
+              echo "Unexpected diagnostic exit code $status."
               exit "$status"
             fi
           }
 
           run_diagnostic nad gpu info
           run_diagnostic nad gpu health
+          run_diagnostic nad gpu topology
           run_diagnostic nad cuda check
           run_diagnostic nad compatibility check
+
+      - name: Validate explicitly configured local runtimes
+        run: |
+          set -euo pipefail
+
+          require_success() {
+            set +e
+            "$@"
+            status=$?
+            set -e
+            if [ "$status" -ne 0 ]; then
+              # Do not echo "$@": a rejected endpoint may have contained
+              # credentials and must never be copied into workflow logs.
+              echo "Required runtime validation failed with exit code $status."
+              exit "$status"
+            fi
+          }
+
+          if [ "$NAD_REQUIRE_TENSORRT" = "true" ]; then
+            require_success nad tensorrt check --json
+          fi
+
+          if [ -n "$NAD_TRITON_ENDPOINT" ]; then
+            require_success nad triton check --allow-local-request \
+              --endpoint "$NAD_TRITON_ENDPOINT" --json
+          fi
+
+          if [ -n "$NAD_NIM_ENDPOINT" ]; then
+            require_success nad nemotron nim --allow-local-request \
+              --endpoint "$NAD_NIM_ENDPOINT" --json
+          fi
 
       - name: Run a bounded, measured GPU benchmark
         env:

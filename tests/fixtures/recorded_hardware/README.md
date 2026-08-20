@@ -22,10 +22,16 @@ pytest tests/hardware -m gpu -v --tb=short
 nad doctor --json --profile --deep-pytorch
 nad gpu info --json
 nad gpu health --json
+nad gpu topology --json
 nad cuda check --json
 nad compatibility check --json
 nad docker gpu-check --allow-container-run --json
 ```
+
+For a real TensorRT, Triton, or NIM validation host, use the optional gates in
+the [hardware-validation runbook](../../../docs/hardware-validation.md). Only
+commit a fixture after manual sanitization; a configured runtime endpoint must
+never appear in a fixture.
 
 For an explicitly opted-in, bounded benchmark, record the command and runtime
 limits alongside the result; never claim results from another GPU as local

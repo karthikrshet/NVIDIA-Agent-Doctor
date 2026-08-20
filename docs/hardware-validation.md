@@ -7,6 +7,7 @@ pytest tests/hardware -m gpu -v --tb=short
 nad doctor --json --profile --deep-pytorch
 nad gpu info
 nad gpu health
+nad gpu topology
 nad cuda check
 nad compatibility check
 nad docker gpu-check --allow-container-run --json
@@ -30,6 +31,29 @@ The default `nad doctor` reads PyTorch package metadata only, so it remains
 fast and does not initialize CUDA. The `--deep-pytorch` flag in this runbook is
 intentional: it opts into the real device enumeration and bounded basic compute
 check needed for hardware validation.
+
+## Optional deployed-runtime gates
+
+Use these only on an authorized machine that already has the service or
+runtime installed. The test suite never installs TensorRT, starts a server,
+loads a model, or makes a remote request. Endpoints must pass the CLI's
+loopback-only validation before a single readiness `GET` is made.
+
+```bash
+# Require a real local TensorRT Python runtime and safe builder/runtime probes.
+NAD_REQUIRE_TENSORRT=true pytest tests/hardware -m gpu -v --tb=short
+
+# Require a ready local Triton server (no model inference is sent).
+NAD_TRITON_ENDPOINT=http://127.0.0.1:8000 pytest tests/hardware -m gpu -v --tb=short
+
+# Require a ready local NIM service (no inference is sent).
+NAD_NIM_ENDPOINT=http://127.0.0.1:8000 pytest tests/hardware -m gpu -v --tb=short
+```
+
+For a supported `nvidia-smi`, `nad gpu topology` reports only GPU labels and
+GPU-to-GPU link classes. It excludes raw topology output, CPU affinity, NUMA,
+and PCI identifiers. An unavailable topology query is expected on some older
+drivers and does not represent a failed GPU-health check.
 
 The availability probe uses NVIDIA's documented `nvidia-smi -L` GPU-listing
 operation. This avoids treating older drivers that reject `nvidia-smi --version`
@@ -62,7 +86,9 @@ workflow at [`.github/workflows/gpu-validation.yml`](../.github/workflows/gpu-va
 It only targets a trusted self-hosted runner labelled `gpu`; GitHub-hosted
 runners do not provide NVIDIA hardware. It runs the real hardware tests, core
 GPU/CUDA commands, a bounded measured GPU benchmark, and validates the JSON
-doctor report.
+doctor report. Dispatchers can optionally require TensorRT and provide local
+Triton/NIM loopback endpoints; an explicitly requested runtime that is absent
+or not ready fails the workflow.
 
 The workflow has read-only repository permissions, runs only through
 `workflow_dispatch`, does not retain checkout credentials, and deliberately
