@@ -18,6 +18,11 @@ def bench_default(ctx: typer.Context) -> None:
 def run(
     json_output: bool = typer.Option(False, "--json"),
     gpu_only: bool = typer.Option(False, "--gpu-only", help="Only run GPU benchmark."),
+    profile_transfers: bool = typer.Option(
+        False,
+        "--profile-transfers",
+        help="Also measure bounded host-device transfer bandwidth.",
+    ),
     confirm: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt."),
     max_memory_mb: int | None = typer.Option(None, "--max-memory-mb", min=16, max=1024),
     timeout_seconds: int | None = typer.Option(None, "--timeout-seconds", min=1, max=300),
@@ -43,6 +48,7 @@ def run(
     config = get_config().benchmark
     results = run_benchmarks(
         gpu_only=gpu_only,
+        profile_transfers=profile_transfers,
         max_memory_mb=max_memory_mb or config.max_memory_mb,
         timeout_seconds=timeout_seconds or config.timeout_seconds,
     )

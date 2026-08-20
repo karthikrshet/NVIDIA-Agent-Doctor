@@ -181,9 +181,12 @@ nad benchmark run --gpu-only --yes --max-memory-mb 16 --timeout-seconds 15 --jso
 
 # Include the optional system-memory and CUDA-copy measurements
 nad benchmark run --yes --max-memory-mb 128 --timeout-seconds 15
+
+# Explicitly measure the local host-device transfer path (maximum 64 MiB)
+nad benchmark run --gpu-only --profile-transfers --yes --max-memory-mb 64 --json
 ```
 
-Results are measured on the current machine and workload only. They are not fabricated, are not hardware specifications, and should not be compared across unrelated configurations. A timeout produces exit code `2`; GPU memory references are cleaned up on success and failure.
+Results are measured on the current machine and workload only. They are not fabricated, are not hardware specifications, and should not be compared across unrelated configurations. `--profile-transfers` measures the active host-device path but does not infer PCIe or NVLink topology. A timeout produces exit code `2`; GPU memory references are cleaned up on success and failure.
 
 ### Validate Docker GPU access safely
 

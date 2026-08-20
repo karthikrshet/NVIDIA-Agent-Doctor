@@ -19,6 +19,12 @@ _DOCKER_FIXTURE = (
     / "recorded_hardware"
     / "rtx3050_docker_cuda116_linux.json"
 )
+_TRANSFER_FIXTURE = (
+    Path(__file__).parents[1]
+    / "fixtures"
+    / "recorded_benchmarks"
+    / "rtx3050_windows_host_device_transfer.json"
+)
 
 
 def test_recorded_single_gpu_fixture_is_sanitized_real_evidence() -> None:
@@ -56,3 +62,20 @@ def test_recorded_docker_gpu_fixture_is_sanitized_real_linux_evidence() -> None:
             "memory_mb": "4096",
         }
     ]
+
+
+def test_recorded_host_device_transfer_fixture_is_sanitized_real_benchmark_evidence() -> None:
+    fixture = json.loads(_TRANSFER_FIXTURE.read_text(encoding="utf-8"))
+
+    assert fixture["provenance"]["kind"] == "sanitized-real-benchmark-capture"
+    assert fixture["gpu"] == "NVIDIA GeForce RTX 3050 Laptop GPU"
+    assert fixture["parameters"] == {
+        "max_memory_mb": 16,
+        "timeout_seconds": 15,
+        "transfer_mb": 16,
+        "samples": 3,
+    }
+    transfer = fixture["results"]["host_device_transfer"]
+    assert transfer["host_to_device_bandwidth_gb_s"] > 0
+    assert transfer["device_to_host_bandwidth_gb_s"] > 0
+    assert "not inferred" in transfer["transport"]

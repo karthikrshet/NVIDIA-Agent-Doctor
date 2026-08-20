@@ -12,6 +12,7 @@ This project uses [Semantic Versioning](https://semver.org/).
 ### Added
 
 - Offline Ed25519 detached-signature verification for local agent skills.
+- An opt-in, capped host-device transfer benchmark that reports measured copy bandwidth without inferring PCIe or NVLink topology.
 - Dependabot coverage and structured bug, feature, security-routing, and pull-request templates for sustainable public maintenance.
 - `nad report compare` to detect health-score, diagnostic-error, and high-security regressions between two local NAD JSON reports.
 - `nad docker gpu-check` for an explicit, bounded validation of NVIDIA GPU visibility inside an already-local Docker CUDA image.

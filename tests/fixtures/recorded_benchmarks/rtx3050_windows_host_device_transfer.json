@@ -1,0 +1,26 @@
+{
+  "provenance": {
+    "kind": "sanitized-real-benchmark-capture",
+    "source": "Explicit local PyTorch host-device transfer benchmark",
+    "command": "nad benchmark run --gpu-only --profile-transfers --yes --max-memory-mb 16 --timeout-seconds 15 --json",
+    "sanitization": "No host name, UUID, PCI identifier, timestamp, credentials, or raw environment output retained. Values are workload-specific measurements, not hardware specifications."
+  },
+  "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
+  "parameters": {
+    "max_memory_mb": 16,
+    "timeout_seconds": 15,
+    "transfer_mb": 16,
+    "samples": 3
+  },
+  "results": {
+    "gpu_basic": {
+      "avg_latency_ms": 1906.17,
+      "tflops": 0.002
+    },
+    "host_device_transfer": {
+      "host_to_device_bandwidth_gb_s": 0.99,
+      "device_to_host_bandwidth_gb_s": 1.61,
+      "transport": "Measured host-device path; PCIe/NVLink topology is not inferred."
+    }
+  }
+}

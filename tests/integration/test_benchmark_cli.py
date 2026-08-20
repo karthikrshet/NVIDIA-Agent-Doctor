@@ -34,3 +34,15 @@ def test_benchmark_skip_remains_successful() -> None:
 
     assert result.exit_code == 0
     assert json.loads(result.stdout)["gpu_basic"]["skipped"] is True
+
+
+def test_benchmark_passes_explicit_transfer_profile_flag() -> None:
+    with patch("nvidia_agent_doctor.benchmark.runner.run_benchmarks") as benchmark:
+        benchmark.return_value = {"host_device_transfer": {"skipped": True}}
+        result = runner.invoke(
+            app,
+            ["benchmark", "run", "--yes", "--profile-transfers", "--json"],
+        )
+
+    assert result.exit_code == 0
+    assert benchmark.call_args.kwargs["profile_transfers"] is True
