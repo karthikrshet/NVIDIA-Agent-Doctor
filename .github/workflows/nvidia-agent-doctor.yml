@@ -50,13 +50,13 @@ jobs:
 
     steps:
       - name: Check out the calling repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: target-repository
           persist-credentials: false
 
       - name: Check out the workflow's NVIDIA Agent Doctor source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # A reusable workflow otherwise checks out the caller's repository.
           # workflow_sha binds this source to the exact commit containing this
