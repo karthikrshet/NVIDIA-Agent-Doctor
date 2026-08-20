@@ -11,6 +11,7 @@ This project uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Dependabot coverage and structured bug, feature, security-routing, and pull-request templates for sustainable public maintenance.
 - `nad report compare` to detect health-score, diagnostic-error, and high-security regressions between two local NAD JSON reports.
 - `nad docker gpu-check` for an explicit, bounded validation of NVIDIA GPU visibility inside an already-local Docker CUDA image.
 - A README hero banner with an adjacent independent-project disclaimer.
@@ -22,6 +23,7 @@ This project uses [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Removed the unused pre-Python-3.11 TOML backport dependency; the project requires Python 3.11 or newer.
 - The README now contains an evidence-based validation ledger that separates verified hardware paths from unavailable or unverified deployment targets.
 - The default doctor now reads PyTorch package metadata without importing the runtime; `--deep-pytorch` explicitly enables CUDA device and bounded compute validation.
 - Driver-reported CUDA maximums are now distinct from local CUDA runtime evidence, preventing `nvidia-smi` capability output from being presented as an installed runtime.

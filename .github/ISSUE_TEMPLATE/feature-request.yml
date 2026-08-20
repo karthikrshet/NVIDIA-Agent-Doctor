@@ -1,0 +1,28 @@
+name: Feature request
+description: Propose an evidence-backed diagnostic or security capability.
+title: "feature: "
+labels: ["enhancement", "triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Describe the concrete developer or operator problem.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior and evidence source
+      description: Identify safe defaults, opt-in effects, and any authoritative NVIDIA or project documentation.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety constraints
+      options:
+        - label: The proposal does not require fabricated data or undocumented NVIDIA APIs.
+          required: true
+        - label: The proposal can be tested without exposing secrets or modifying host configuration by default.
+          required: true

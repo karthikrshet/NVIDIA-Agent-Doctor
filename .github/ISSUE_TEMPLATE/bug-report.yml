@@ -1,0 +1,43 @@
+name: Bug report
+description: Report a reproducible diagnostic, CLI, or report-rendering problem.
+title: "bug: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include API keys, tokens, private paths, hostnames, GPU UUIDs, or customer data.
+        Use `nad security leak-check` and review output before attaching it.
+  - type: input
+    id: version
+    attributes:
+      label: NVIDIA Agent Doctor version
+      description: Output from `nad --version`.
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Operating system
+      options:
+        - Linux
+        - Windows
+        - macOS
+        - Container
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Sanitized command and output
+      description: Include the exact command and redacted output or traceback.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true

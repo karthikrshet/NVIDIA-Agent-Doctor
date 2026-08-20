@@ -34,6 +34,9 @@ pytest tests/ -v -m "not gpu"
 - **Documentation** — Improvements always welcome
 - **Tests** — More coverage is always better
 
+GitHub provides structured bug and feature forms. Security reports must use the
+private disclosure path in [SECURITY.md](SECURITY.md), never a public issue.
+
 ## Important Rules
 
 1. **No hallucinated data** — Never add compatibility rules or benchmark numbers without authoritative sources
