@@ -43,6 +43,7 @@ This project uses [Semantic Versioning](https://semver.org/).
 - Benchmark and PyTorch validation errors are redacted and release GPU cache references on all handled paths.
 - Older NVIDIA-SMI installations that reject `--version` can still be detected through the documented GPU-listing probe.
 - Local NIM and Triton readiness endpoints reject malformed, remote, credential-bearing, query-string, and fragment URLs.
+- Triton client detection now reads installed package metadata when a client module does not expose its own version.
 - MCP findings, arguments, URLs, terminal output, and JSON output are redacted before rendering.
 - Reusable workflows no longer upload caller diagnostic reports or suppress failed security and skills scans.
 

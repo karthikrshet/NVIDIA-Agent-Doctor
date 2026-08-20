@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import sys
 from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError, URLError
 
-from nvidia_agent_doctor.integrations.triton import check_local_triton_readiness
+from nvidia_agent_doctor.integrations.triton import (
+    _detect_tritonserver_process,
+    check_local_triton_readiness,
+    check_triton,
+)
 
 
 def test_triton_readiness_never_requests_without_explicit_consent() -> None:
@@ -71,3 +76,43 @@ def test_triton_readiness_reports_non_ready_http_status_without_a_traceback() ->
     assert result["status"] == "not_ready"
     assert result["ready"] is False
     assert result["http_status"] == 503
+
+
+def test_triton_client_uses_distribution_metadata_when_module_has_no_version() -> None:
+    client_module = MagicMock(spec=[])
+    with patch.dict(sys.modules, {"tritonclient": client_module}):
+        with patch(
+            "nvidia_agent_doctor.integrations.triton.distribution_version",
+            return_value="2.71.0",
+        ):
+            with patch(
+                "nvidia_agent_doctor.integrations.triton._detect_tritonserver_process",
+                return_value=False,
+            ):
+                with patch(
+                    "nvidia_agent_doctor.integrations.triton._check_triton_container",
+                    return_value=False,
+                ):
+                    result = check_triton()
+
+    assert result["client_available"] is True
+    assert result["client_version"] == "2.71.0"
+
+
+def test_process_detection_does_not_treat_a_docker_pull_as_a_server() -> None:
+    docker_pull = MagicMock(
+        info={
+            "name": "docker.exe",
+            "cmdline": ["docker", "pull", "nvcr.io/nvidia/tritonserver:25.08-py3"],
+        }
+    )
+    with patch("psutil.process_iter", return_value=[docker_pull]) as process_iter:
+        assert _detect_tritonserver_process() is False
+
+    process_iter.assert_called_once_with(["name"])
+
+
+def test_process_detection_accepts_the_actual_triton_executable() -> None:
+    triton_server = MagicMock(info={"name": "tritonserver.exe"})
+    with patch("psutil.process_iter", return_value=[triton_server]):
+        assert _detect_tritonserver_process() is True

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as distribution_version
 from typing import Any, cast
 from urllib.error import HTTPError
 from urllib.parse import urlsplit, urlunsplit
@@ -43,6 +45,13 @@ def check_triton() -> dict[str, Any]:
 
         result["client_available"] = True
         result["client_version"] = getattr(tritonclient, "__version__", None)
+        if result["client_version"] is None:
+            try:
+                result["client_version"] = distribution_version("tritonclient")
+            except PackageNotFoundError:
+                # A namespace/module can exist without installed distribution
+                # metadata. It is still a detected client, just unversioned.
+                pass
     except ImportError:
         pass
 
@@ -155,17 +164,21 @@ def _get_tritonserver_version(binary: str) -> str | None:
 
 
 def _detect_tritonserver_process() -> bool:
-    """Check if tritonserver is running as a process."""
+    """Check whether the actual Triton executable is running.
+
+    Do not search arbitrary command-line arguments: a command such as
+    ``docker pull nvcr.io/nvidia/tritonserver:tag`` names Triton but is not a
+    running server. Container readiness is established by the explicit
+    loopback probe instead.
+    """
     try:
         import psutil
 
-        for proc in psutil.process_iter(["name", "cmdline"]):
+        for proc in psutil.process_iter(["name"]):
             try:
                 name = proc.info.get("name", "") or ""
-                if "tritonserver" in name.lower():
-                    return True
-                cmdline = proc.info.get("cmdline") or []
-                if any("tritonserver" in arg for arg in cmdline):
+                executable_name = name.lower().removesuffix(".exe")
+                if executable_name == "tritonserver":
                     return True
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 pass
