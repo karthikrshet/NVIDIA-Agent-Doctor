@@ -399,6 +399,8 @@ The repository includes a sanitized record from an authorized Windows test machi
 
 This validates the listed machine and its Docker Desktop Linux-container path only. It is not evidence for every driver, GPU generation, operating system, CUDA version, or optional NVIDIA runtime.
 
+An external tester has also demonstrated successful execution of the features available in their environment. That is useful real-world confirmation, but it is recorded as a report—not as a repository fixture—until the tester contributes sanitized command outputs, the tested commit, and an environment summary. The evidence table below remains limited to results that this repository can document and reproduce.
+
 ### Validation ledger
 
 | Area | Status | Evidence or reason |
@@ -412,6 +414,7 @@ This validates the listed machine and its Docker Desktop Linux-container path on
 | Triton Python client detection | Verified, limited | A real `tritonclient` package was imported in an isolated validation environment; this is not evidence of a Triton server |
 | Triton readiness endpoint | Unavailable | Explicit loopback readiness request found no running server |
 | NIM readiness endpoint | Unavailable | Explicit loopback readiness request was refused; no NIM deployment is configured |
+| External end-to-end exercise | Reported successful | An external tester demonstrated successful results for the features enabled in their environment; sanitized, versioned artifacts have not yet been contributed |
 | OpenShell and Kubernetes | Heuristic/opt-in | No authorized runtime or cluster is configured |
 
 `Verified` means a real command ran against the named environment. `Unverified`,
