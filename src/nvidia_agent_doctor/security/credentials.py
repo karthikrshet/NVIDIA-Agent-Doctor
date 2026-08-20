@@ -9,14 +9,14 @@ from typing import Any
 from urllib.parse import parse_qsl, urlsplit, urlunsplit
 
 # Patterns that suggest a value is a secret
-_SECRET_KEY_PATTERNS = re.compile(
-    r"(api[_-]?key|apikey|secret|password|passwd|token|credential|"
+_SECRET_KEY_PATTERN = (
+    r"(?:api[_-]?key|apikey|secret|password|passwd|token|credential|"
     r"auth(?:orization|entication)?(?:$|[_-])|"
     r"private[_-]?key|access[_-]?key|client[_-]?secret|bearer|"
     r"ngc[_-]?api[_-]?key|openai[_-]?key|hf[_-]?token|"
-    r"huggingface[_-]?token|anthropic|gemini[_-]?key)",
-    re.IGNORECASE,
+    r"huggingface[_-]?token|anthropic|gemini[_-]?key)"
 )
+_SECRET_KEY_PATTERNS = re.compile(_SECRET_KEY_PATTERN, re.IGNORECASE)
 
 _SECRET_VALUE_PATTERNS = [
     re.compile(r"^sk-[A-Za-z0-9]{20,}$"),  # OpenAI-style keys
@@ -33,7 +33,9 @@ _INLINE_SECRET_VALUE_PATTERNS = [
     re.compile(r"\bghp_[A-Za-z0-9]{36}\b"),
     re.compile(r"\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*\b"),
 ]
-_UPPERCASE_ASSIGNMENT = re.compile(r"\b([A-Z][A-Z0-9_-]*)\s*([=:])\s*([^\s,;]+)")
+_SENSITIVE_ASSIGNMENT = re.compile(
+    rf"\b({_SECRET_KEY_PATTERN})\s*([=:])\s*([^\s,;]+)", re.IGNORECASE
+)
 
 REDACTED = "********"
 
@@ -45,15 +47,14 @@ def redact_text(value: str) -> str:
         redacted = pattern.sub(REDACTED, redacted)
     for pattern in _INLINE_SECRET_VALUE_PATTERNS:
         redacted = pattern.sub(REDACTED, redacted)
-    return _UPPERCASE_ASSIGNMENT.sub(_redact_assignment, redacted)
+    return _SENSITIVE_ASSIGNMENT.sub(_redact_assignment, redacted)
 
 
 def _redact_assignment(match: re.Match[str]) -> str:
-    """Redact an uppercase assignment only when its key is sensitive."""
+    """Redact a matched sensitive assignment without retaining its value."""
     key, separator, value = match.groups()
-    if _SECRET_KEY_PATTERNS.search(key):
-        return f"{key}{separator}{REDACTED}"
-    return match.group(0)
+    del value
+    return f"{key}{separator}{REDACTED}"
 
 
 def _redact_url(value: str) -> str:

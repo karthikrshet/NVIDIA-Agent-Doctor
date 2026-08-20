@@ -11,6 +11,7 @@ This project uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Offline Ed25519 detached-signature verification for local agent skills.
 - Dependabot coverage and structured bug, feature, security-routing, and pull-request templates for sustainable public maintenance.
 - `nad report compare` to detect health-score, diagnostic-error, and high-security regressions between two local NAD JSON reports.
 - `nad docker gpu-check` for an explicit, bounded validation of NVIDIA GPU visibility inside an already-local Docker CUDA image.
@@ -23,6 +24,8 @@ This project uses [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Distribution CI now smoke-tests clean wheel and source-distribution installs.
+- Remove Typer's obsolete `all` extra; Rich is already a direct runtime dependency.
 - Removed the unused pre-Python-3.11 TOML backport dependency; the project requires Python 3.11 or newer.
 - The README now contains an evidence-based validation ledger that separates verified hardware paths from unavailable or unverified deployment targets.
 - The default doctor now reads PyTorch package metadata without importing the runtime; `--deep-pytorch` explicitly enables CUDA device and bounded compute validation.

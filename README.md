@@ -143,11 +143,15 @@ MCP inspection reads configuration. It does not start MCP servers, execute confi
 
 ```bash
 nad skills scan examples/skills --risk-graph --json
-nad skills verify path/to/SKILL.md --signature path/to/skill.sig --json
+# SHA-256 integrity digest verification
+nad skills verify path/to/SKILL.md --signature path/to/skill.sha256 --json
+
+# Offline Ed25519 detached-signature verification (raw or base64 signature)
+nad skills verify path/to/SKILL.md --signature path/to/skill.sig --public-key path/to/signer.pem --json
 nad test-agent examples/skills --mcp-config examples/mcp/example-mcp-config.json --json
 ```
 
-`nad skills scan` and `nad test-agent` are static preflight checks. They do not run a skill, invoke an MCP server, call a model, or make a network request. `skills verify` currently validates a detached SHA-256 digest and a local `SKILLCARD.yaml` schema. A digest proves integrity of the supplied file, not publisher identity; public-key/OpenSSF Model Signing verification is not implemented.
+`nad skills scan` and `nad test-agent` are static preflight checks. They do not run a skill, invoke an MCP server, call a model, or make a network request. `skills verify` validates either a detached SHA-256 digest or an explicitly supplied Ed25519 public key and detached signature, plus a local `SKILLCARD.yaml` schema. Ed25519 verification proves only that the supplied key signed the content; it does not establish publisher identity. OpenSSF Model Signing/Sigstore verification is not implemented.
 
 ### Produce a shareable report
 

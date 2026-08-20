@@ -153,18 +153,31 @@ def _exit_for_results(results: Sequence[SkillScanResult]) -> None:
 def verify(
     skill: Path = typer.Argument(..., help="Path to the SKILL.md file."),
     signature: Path | None = typer.Option(
-        None, "--signature", help="Detached SHA-256 digest file."
+        None,
+        "--signature",
+        help="SHA-256 digest, or Ed25519 signature when --public-key is supplied.",
+    ),
+    public_key: Path | None = typer.Option(
+        None,
+        "--public-key",
+        help="PEM Ed25519 public key; switches verification to a detached signature.",
     ),
     json_output: bool = typer.Option(False, "--json"),
 ) -> None:
-    """Verify a local detached digest and validate a SKILLCARD.yaml manifest."""
+    """Verify local skill integrity material and validate a SKILLCARD.yaml manifest.
+
+    Without --public-key, --signature is a SHA-256 digest. With --public-key,
+    --signature is an Ed25519 detached signature (raw 64-byte or base64).
+    This does not discover keys or claim publisher identity.
+    """
     import json
 
+    from nvidia_agent_doctor.security.credentials import redact_data
     from nvidia_agent_doctor.skills.verifier import verify_skill
 
-    result = verify_skill(skill, signature)
+    result = verify_skill(skill, signature, public_key)
     if json_output:
-        typer.echo(json.dumps(result, indent=2))
+        typer.echo(json.dumps(redact_data(result), indent=2))
     else:
         console = Console()
         console.print(f"Integrity: {result['integrity']['status']}")

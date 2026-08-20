@@ -9,6 +9,7 @@ from nvidia_agent_doctor.security.credentials import (
     redact_data,
     redact_env_dict,
     redact_secrets,
+    redact_text,
     scan_environment_for_exposed_secrets,
 )
 
@@ -48,6 +49,11 @@ class TestRedactSecrets:
         assert redact_secrets("author", "NVIDIA Agent Doctor Contributors") == (
             "NVIDIA Agent Doctor Contributors"
         )
+
+    def test_redacts_secret_assignment_inside_a_windows_path(self) -> None:
+        value = r"D:\\reports\\API_KEY=super-secret-value\\SKILL.md"
+
+        assert redact_text(value) == r"D:\\reports\\API_KEY=********"
 
 
 class TestRedactEnvDict:
